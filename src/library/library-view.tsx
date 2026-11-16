@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { importBook } from '../import/import-book';
-import { deleteBook, isDesktopApp, listAnnotations, listBooks, saveBook, storageLocation } from '../lib/db';
-import { bookSummary } from '../lib/progress';
-import { reparseBook } from './reparse-book';
+import { listAnnotations, listBooks, saveBook, storageLocation } from '../lib/db';
+import { foldForSearch } from '../lib/taken';
 import type { Annotations, BookMeta } from '../lib/types';
+import { useConfirm } from '../ui/confirm';
+import { useToast } from '../ui/toast';
+import { BookRow } from './book-row';
 
 interface Props {
   onOpen: (id: string) => void;
@@ -12,15 +14,14 @@ interface Props {
 export function LibraryView({ onOpen }: Props) {
   const [books, setBooks] = useState<BookMeta[]>([]);
   const [anns, setAnns] = useState<Map<string, Annotations>>(new Map());
+  const [filter, setFilter] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [location, setLocation] = useState('');
+  const [confirmNode, confirm] = useConfirm();
+  const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    void storageLocation().then(setLocation);
-  }, []);
+  const filterInput = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     const [b, a] = await Promise.all([listBooks(), listAnnotations()]);
@@ -30,13 +31,20 @@ export function LibraryView({ onOpen }: Props) {
 
   useEffect(() => {
     void refresh();
+    void storageLocation().then(setLocation);
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        filterInput.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [refresh]);
 
-  const onFiles = async (files: FileList | null) => {
-    if (!files?.length) return;
-    setError(null);
+  const addFiles = async (files: File[]) => {
     const failures: string[] = [];
-    for (const file of Array.from(files)) {
+    for (const file of files) {
       setBusy(`Đang đọc ${file.name}…`);
       try {
         const { book, source } = await importBook(file);
@@ -46,72 +54,71 @@ export function LibraryView({ onOpen }: Props) {
       }
     }
     setBusy(null);
-    if (failures.length) setError(failures.join('\n'));
+    if (failures.length) toast(failures.join('\n'), true);
+    else toast(files.length === 1 ? `Đã thêm "${files[0].name}"` : `Đã thêm ${files.length} sách`);
     if (input.current) input.current.value = '';
     await refresh();
   };
 
-  const reparse = async (b: BookMeta) => {
-    setError(null);
-    setNotice(null);
-    setBusy(`Đang tách lại ${b.title}…`);
-    try {
-      setNotice(await reparseBook(b.id));
-    } catch (e) {
-      setError(`${b.title}: ${e instanceof Error ? e.message : String(e)}`);
-    }
-    setBusy(null);
-    await refresh();
-  };
-
-  const remove = async (b: BookMeta) => {
-    const consequence = isDesktopApp
-      ? 'Thư mục của sách (kèm phần đã xóa và đoạn bạn viết) sẽ được chuyển vào Thùng rác.'
-      : 'Mọi phần đã xóa và đoạn bạn viết trong sách này cũng mất, không khôi phục được.';
-    if (!window.confirm(`Xóa "${b.title}" khỏi thư viện? ${consequence}`)) return;
-    await deleteBook(b.id);
-    await refresh();
-  };
+  // Most recently opened first, then most recently added.
+  const rows = useMemo(() => {
+    const q = foldForSearch(filter.trim());
+    const recent = (b: BookMeta) => anns.get(b.id)?.lastOpenedAt ?? b.addedAt;
+    return books.filter((b) => !q || foldForSearch(b.title).includes(q)).sort((a, b) => recent(b) - recent(a));
+  }, [books, anns, filter]);
 
   return (
-    <div className="library">
+    <div
+      className={`library${dragging ? ' dragging' : ''}`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={(e) => e.currentTarget === e.target && setDragging(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        const files = Array.from(e.dataTransfer.files).filter((f) => /\.(epub|pdf)$/i.test(f.name));
+        if (files.length) void addFiles(files);
+        else toast('Chỉ nhận file EPUB hoặc PDF', true);
+      }}
+    >
       <header className="library-head">
-        <h1>Book Carve</h1>
-        <p className="tagline">Sách là quặng, không phải kinh thánh.</p>
-        <label className="upload">
-          <input ref={input} type="file" accept=".epub,.pdf" multiple onChange={(e) => void onFiles(e.target.files)} />
-          Thêm sách (EPUB, PDF)
+        <h1>Thư viện</h1>
+        <span className="muted">{books.length} sách</span>
+        <span className="spacer" />
+        <input ref={filterInput} type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Lọc theo tên  (Ctrl+F)" aria-label="Lọc sách" />
+        <label className="button primary">
+          <input ref={input} type="file" accept=".epub,.pdf" multiple hidden onChange={(e) => e.target.files && void addFiles(Array.from(e.target.files))} />
+          Thêm sách
         </label>
-        {busy && <p className="status">{busy}</p>}
-        {notice && <p className="status">{notice}</p>}
-        {error && <p className="error">{error}</p>}
       </header>
-      {!books.length && !busy && <p className="empty">Chưa có sách nào. Thêm một file EPUB hoặc PDF có chữ để bắt đầu.</p>}
-      <ul className="book-list">
-        {books.map((b) => (
-          <li key={b.id}>
-            <button className="book-card" onClick={() => onOpen(b.id)}>
-              <span className="book-card-title">{b.title}</span>
-              <span className="book-card-meta">
-                {b.format.toUpperCase()} · {b.chapterCount} chương · {bookSummary(b, anns.get(b.id))}
-              </span>
-            </button>
-            {isDesktopApp && (
-              <button
-                className="ghost"
-                disabled={busy !== null}
-                onClick={() => void reparse(b)}
-                title="Tách chữ lại từ file gốc đã lưu, giữ phần đã xóa và đoạn bạn viết"
-                aria-label={`Tách lại ${b.title}`}
-              >
-                Tách lại
-              </button>
-            )}
-            <button className="ghost danger" onClick={() => void remove(b)} aria-label={`Xóa ${b.title}`}>Xóa</button>
-          </li>
-        ))}
-      </ul>
-      {location && <p className="storage">Dữ liệu lưu tại: {location}</p>}
+      {busy && <div className="progress-line">{busy}</div>}
+      {books.length > 0 && (
+        <div className="book-table" role="table" aria-label="Sách">
+          <div className="book-row head" role="row">
+            <span>Tên</span>
+            <span>Tiến độ</span>
+            <span className="num">Giữ lại</span>
+            <span className="num">Ý của bạn</span>
+            <span />
+          </div>
+          {rows.map((b) => (
+            <BookRow key={b.id} book={b} ann={anns.get(b.id)} onOpen={onOpen} ctx={{ confirm, toast, changed: () => void refresh() }} />
+          ))}
+          {!rows.length && <p className="muted pad">Không có sách nào khớp "{filter}".</p>}
+        </div>
+      )}
+      {!books.length && !busy && (
+        <div className="empty-state">
+          <p>Kéo thả file EPUB hoặc PDF có chữ vào đây, hoặc bấm "Thêm sách".</p>
+        </div>
+      )}
+      <footer className="library-foot muted">
+        Kéo thả file vào cửa sổ để thêm · Dữ liệu: {location}
+      </footer>
+      {dragging && <div className="drop-hint">Thả để thêm sách</div>}
+      {confirmNode}
     </div>
   );
 }
