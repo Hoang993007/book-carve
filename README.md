@@ -11,19 +11,30 @@ paragraphs are stored as an overlay, and "Show original" brings everything back.
 Not memorization. Pull out the ideas worth using, then find them again in seconds
 when a real task reminds you of them, without rereading the book.
 
-## MVP scope
+## Design
 
-- Import EPUB and text-based PDF.
-- Opening a book lands on "What I took": the kept text of chapters you have read,
-  with your own paragraphs standing out, in book order; click to jump to its spot.
-  Untouched, unread chapters are left out.
-- Progress saves itself per chapter: furthest point reached (pages for PDF,
-  % for EPUB), what is left, and "done" once you reach the end. No buttons.
-- Search inside a book across kept text and your own paragraphs.
-- Select + Backspace deletes; right-click restores struck text or inserts your own paragraph.
-- Two views: compact (deleted text hidden, `⋯` marker expands in place) and original (deleted text struck through).
-- Table of contents with that progress and % of original text kept per chapter.
+The carved book is the note. There is no separate notes pane: one reading surface
+shows the whole book in order, with deleted text gone and your own paragraphs in
+place. Chapters you have not touched fold to one line until you open them. Everything
+secondary (contents, search, re-parse, export, delete) is on demand.
+
+- Library: one row per book (progress, share of read text kept, own paragraphs, last
+  opened); actions in each row's ⋯ menu, destructive ones behind a confirm box;
+  drag and drop files to add.
+- Reading: progress saves itself per chapter (pages for PDF, % for EPUB; "done" once
+  the chapter's end has been on screen). "Tiếp tục" jumps back to where you stopped.
 - Export "my version" of a book to Markdown.
+
+| Key | Action |
+|---|---|
+| Select + Backspace / Delete | Delete the selection (across paragraphs and chapters) |
+| Enter | Insert your own paragraph after the paragraph the caret is in |
+| Right-click | Restore struck text, delete, or insert |
+| Ctrl+Z / Ctrl+Y | Undo / redo deletions and inserted paragraphs |
+| O | Compact ↔ original (deleted text struck through) |
+| [ | Contents |
+| Ctrl+F | Search kept text and your paragraphs (diacritics ignored) |
+| Esc | Close contents and search |
 
 Later: cross-book search over kept text and own paragraphs, second-brain sync, AI fluff hints.
 
