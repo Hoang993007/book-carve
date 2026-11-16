@@ -60,15 +60,6 @@ export function ChapterText(props: Props) {
   );
 }
 
-/** "⋯ 3 đoạn đã xóa" when whole paragraphs are gone, a bare "⋯" for cuts inside one. */
-function markerLabel(chapter: Chapter, ranges: TextRange[], rangeStart: number): string {
-  const range = ranges.find(([a]) => a === rangeStart);
-  if (!range) return '⋯';
-  const touched = chapter.blocks.filter((b) => b.start < range[1] && blockEnd(b) > range[0]);
-  const whole = touched.some((b) => b.start >= range[0] && blockEnd(b) <= range[1]);
-  return whole ? `⋯ ${touched.length} đoạn đã xóa` : '⋯';
-}
-
 function renderSegment(block: Block, seg: Segment, props: Props) {
   const text = block.text.slice(seg.start - block.start, seg.end - block.start);
   if (!seg.deleted) return <span key={seg.start} data-s={seg.start}>{text}</span>;
@@ -86,7 +77,7 @@ function renderSegment(block: Block, seg: Segment, props: Props) {
         onClick={() => props.onToggleExpand(rangeStart)}
         title={open ? 'Thu lại' : 'Hiện phần đã xóa'}
       >
-        {open ? 'thu lại' : markerLabel(props.chapter, props.ranges, rangeStart)}
+        ⋯
       </button>
     ) : null;
   if (!open) return marker;
