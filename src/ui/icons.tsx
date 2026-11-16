@@ -5,6 +5,8 @@ export const IconUp = () => <svg {...base}><path d="M4 10l4-4 4 4" /></svg>;
 export const IconDown = () => <svg {...base}><path d="M4 6l4 4 4-4" /></svg>;
 export const IconClose = () => <svg {...base}><path d="M4 4l8 8M12 4l-8 8" /></svg>;
 export const IconBack = () => <svg {...base}><path d="M10 3.5L5.5 8l4.5 4.5" /></svg>;
+export const IconCollapse = () => <svg {...base}><path d="M8.5 4L4.5 8l4 4M12.5 4l-4 4 4 4" /></svg>;
+export const IconExpand = () => <svg {...base}><path d="M7.5 4l4 4-4 4M3.5 4l4 4-4 4" /></svg>;
 export const IconMore = () => (
   <svg {...base} fill="currentColor" stroke="none">
     <circle cx="3.5" cy="8" r="1.3" />

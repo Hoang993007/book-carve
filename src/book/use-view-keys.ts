@@ -7,7 +7,7 @@ interface Handlers {
   escape: () => void;
 }
 
-/** View shortcuts: O compact/original · [ contents · Ctrl+F search · Escape closes overlays. */
+/** View shortcuts: O compact/original · [ contents sidebar · Ctrl+F search · Escape closes search. */
 export function useViewKeys(handlers: Handlers) {
   const ref = useRef(handlers);
   ref.current = handlers;

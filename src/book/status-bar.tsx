@@ -6,9 +6,9 @@ const KEYS: [string, string][] = [
   ['Chuột phải', 'Khôi phục, xóa hoặc chèn ý'],
   ['Ctrl+Z / Ctrl+Y', 'Hoàn tác / làm lại'],
   ['O', 'Bản gọn ↔ bản gốc'],
-  ['[', 'Mục lục'],
+  ['[', 'Thu gọn / hiện mục lục'],
   ['Ctrl+F', 'Tìm trong sách'],
-  ['Esc', 'Đóng mục lục, tìm kiếm'],
+  ['Esc', 'Đóng tìm kiếm'],
 ];
 
 export function StatusBar({ saving }: { saving: boolean }) {

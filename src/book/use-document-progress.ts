@@ -28,7 +28,8 @@ export function useDocumentProgress(
       const sections = Array.from(el.querySelectorAll<HTMLElement>('section[data-chapter]'));
       let current = 0;
       sections.forEach((s, i) => {
-        if (s.getBoundingClientRect().top <= view.top + 80) current = i;
+        // The chapter you are reading is the one covering the upper third of the view.
+        if (s.getBoundingClientRect().top <= view.top + view.height / 3) current = i;
       });
       onCurrentChapter(current);
       if (!ready) return;

@@ -9,7 +9,7 @@ import { BookDocument } from './book-document';
 import type { ViewMode } from './chapter-text';
 import { SearchBar } from './search-bar';
 import { StatusBar } from './status-bar';
-import { TocOverlay } from './toc-overlay';
+import { TocSidebar } from './toc-sidebar';
 import type { AnnotationsApi } from './use-annotations';
 import { useDocumentProgress } from './use-document-progress';
 import { useSearch } from './use-search';
@@ -23,14 +23,24 @@ interface Props {
   onReload: () => void;
 }
 
-/** One reading surface: the whole book carved, with the table of contents and search on demand. */
+const TOC_KEY = 'bookcarve.toc-open';
+
+function readTocPref(): boolean {
+  try {
+    return localStorage.getItem(TOC_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+/** One reading surface: the whole book carved, the contents beside it, search on demand. */
 export function BookScreen({ book, api, onBack, onReload }: Props) {
   const ann = api.ann!;
   const { update } = api;
   const scroller = useRef<HTMLDivElement>(null);
   const surface = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<ViewMode>('compact');
-  const [tocOpen, setTocOpen] = useState(false);
+  const [tocOpen, setTocOpen] = useState(readTocPref);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [current, setCurrent] = useState(0);
@@ -62,13 +72,14 @@ export function BookScreen({ book, api, onBack, onReload }: Props) {
     [book, scrollToChapter],
   );
 
-  const jumpTo = useCallback(
-    (index: number) => {
-      setTocOpen(false);
-      openChapter(index);
-    },
-    [openChapter],
-  );
+  useEffect(() => {
+    try {
+      localStorage.setItem(TOC_KEY, tocOpen ? '1' : '0');
+    } catch {
+      // Not remembered this time; the sidebar still works.
+    }
+  }, [tocOpen]);
+  const toggleToc = useCallback(() => setTocOpen((o) => !o), []);
 
   // Where reading stopped: the last chapter in progress that is not finished.
   const resume = useMemo(() => {
@@ -87,16 +98,13 @@ export function BookScreen({ book, api, onBack, onReload }: Props) {
 
   useViewKeys({
     toggleMode: () => setMode((m) => (m === 'compact' ? 'original' : 'compact')),
-    toggleToc: () => setTocOpen((o) => !o),
+    toggleToc,
     openSearch: () => setSearchOpen(true),
-    escape: () => {
-      setTocOpen(false);
-      setSearchOpen(false);
-    },
+    escape: () => setSearchOpen(false),
   });
 
   const menuItems = [
-    { label: 'Mục lục', shortcut: '[', run: () => setTocOpen(true) },
+    { label: tocOpen ? 'Thu gọn mục lục' : 'Hiện mục lục', shortcut: '[', run: toggleToc },
     { label: mode === 'compact' ? 'Hiện bản gốc' : 'Về bản gọn', shortcut: 'O', run: () => setMode((m) => (m === 'compact' ? 'original' : 'compact')) },
     { label: 'Tìm trong sách', shortcut: 'Ctrl+F', run: () => setSearchOpen(true) },
     ...bookActions(book.id, book.title, {
@@ -112,10 +120,10 @@ export function BookScreen({ book, api, onBack, onReload }: Props) {
     <div className="book-screen">
       <header className="topbar">
         <button className="icon-btn" onClick={onBack} aria-label="Về thư viện" title="Về thư viện"><IconBack /></button>
-        <button className="crumb" onClick={() => setTocOpen((o) => !o)} title="Mục lục ( [ )">
+        <div className="crumb">
           <span className="crumb-book">{book.title}</span>
           <span className="crumb-chapter">{book.chapters[current]?.title}</span>
-        </button>
+        </div>
         <span className="spacer" />
         {resume && resume.index !== current && (
           <button className="pill" onClick={() => { openChapter(resume.index); scrollToChapter(resume.index, resume.block); }}>
@@ -129,10 +137,10 @@ export function BookScreen({ book, api, onBack, onReload }: Props) {
         <SearchBar query={query} onQuery={setQuery} count={search.count} index={search.index} onNext={search.next} onPrev={search.prev} onClose={closeSearch} />
       )}
       <div className="reader-wrap">
+        <TocSidebar book={book} ann={ann} current={current} open={tocOpen} onToggle={toggleToc} onJump={openChapter} />
         <div className="reader" ref={scroller}>
           <BookDocument book={book} api={api} mode={mode} openChapters={openChapters} onOpenChapter={openChapter} surface={surface} />
         </div>
-        {tocOpen && <TocOverlay book={book} ann={ann} current={current} onJump={jumpTo} onClose={() => setTocOpen(false)} />}
       </div>
       <StatusBar saving={api.saving} />
       {confirmNode}
