@@ -76,6 +76,11 @@ export async function registerStoreHandlers(root: string): Promise<void> {
     await writeJson(path.join(dir, 'annotations.json'), ann, true);
   });
 
+  ipcMain.handle('store:reveal', async (_e, id: unknown) => {
+    const error = await shell.openPath(bookDir(id));
+    if (error) throw new Error(error);
+  });
+
   // Deleting a book moves its folder to the Recycle Bin, so it can still be recovered.
   ipcMain.handle('store:delete-book', (_e, id: unknown) => shell.trashItem(bookDir(id)));
 }

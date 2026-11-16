@@ -11,5 +11,6 @@ contextBridge.exposeInMainWorld('bookCarve', {
   saveAnnotations: (ann: unknown) => ipcRenderer.invoke('store:save-annotations', ann),
   getSource: (id: string) => ipcRenderer.invoke('store:get-source', id),
   replaceBook: (book: unknown, ann: unknown) => ipcRenderer.invoke('store:replace-book', book, ann),
+  reveal: (id: string) => ipcRenderer.invoke('store:reveal', id),
   deleteBook: (id: string) => ipcRenderer.invoke('store:delete-book', id),
 });

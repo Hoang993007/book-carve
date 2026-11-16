@@ -33,6 +33,9 @@ export const idbStore: BookStore = {
     await (await dbPromise).put('annotations', a);
   },
   getSource: async () => null,
+  reveal: async () => {
+    throw new Error('Chỉ có trong bản cài trên máy');
+  },
   async replaceBook(book, a) {
     await idbStore.saveBook(book);
     await idbStore.saveAnnotations(a);

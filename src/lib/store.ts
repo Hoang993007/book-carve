@@ -20,6 +20,8 @@ export interface BookStore {
   getSource(id: string): Promise<{ ext: BookFormat; bytes: Uint8Array } | null>;
   /** Swaps in a re-parsed book and its remapped annotations, keeping the previous parse as a backup. */
   replaceBook(book: Book, a: Annotations): Promise<void>;
+  /** Opens the book's folder in the file manager (desktop only). */
+  reveal(id: string): Promise<void>;
 }
 
 declare global {

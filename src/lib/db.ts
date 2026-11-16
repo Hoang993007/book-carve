@@ -35,4 +35,6 @@ export async function getSource(id: string): Promise<BookSource | null> {
   return { ext: src.ext, bytes: buffer.slice(byteOffset, byteOffset + byteLength) as ArrayBuffer };
 }
 
-export const replaceBook = async (book: Book, a: Annotations): Promise<void> => (await store).replaceBook(book, a);
+export const revealBook = async (id: string): Promise<void> => (await store).reveal(id);
+
+export const replaceBook =async (book: Book, a: Annotations): Promise<void> => (await store).replaceBook(book, a);
