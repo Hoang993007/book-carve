@@ -27,3 +27,12 @@ export async function getAnnotations(bookId: string): Promise<Annotations> {
 }
 
 export const saveAnnotations = async (a: Annotations): Promise<void> => (await store).saveAnnotations(a);
+
+export async function getSource(id: string): Promise<BookSource | null> {
+  const src = await (await store).getSource(id);
+  if (!src) return null;
+  const { buffer, byteOffset, byteLength } = src.bytes;
+  return { ext: src.ext, bytes: buffer.slice(byteOffset, byteOffset + byteLength) as ArrayBuffer };
+}
+
+export const replaceBook = async (book: Book, a: Annotations): Promise<void> => (await store).replaceBook(book, a);

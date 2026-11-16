@@ -7,19 +7,22 @@ export interface ImportedBook {
   source: BookSource;
 }
 
-/** Reads an EPUB or text-based PDF into a Book. Importers load lazily (pdf.js is large). */
+/** Parses an original file. Importers load lazily (pdf.js is large). */
+export async function parseSource(source: BookSource, fallbackTitle: string): Promise<ParsedBook> {
+  // Parsers get a copy: pdf.js transfers (detaches) the buffer it is given.
+  const bytes = source.bytes.slice(0);
+  if (source.ext === 'epub') return (await import('./epub-import')).importEpub(bytes, fallbackTitle);
+  return (await import('./pdf-import')).importPdf(bytes, fallbackTitle);
+}
+
+/** Reads an EPUB or text-based PDF into a Book, keeping the original bytes to store alongside. */
 export async function importBook(file: File): Promise<ImportedBook> {
   const ext = file.name.split('.').pop()?.toLowerCase();
   const format: BookFormat | null = ext === 'epub' ? 'epub' : ext === 'pdf' ? 'pdf' : null;
   if (!format) throw new Error(`Chỉ nhận EPUB hoặc PDF: ${file.name}`);
 
-  const bytes = await file.arrayBuffer();
-  const fallbackTitle = file.name.replace(/\.[^.]+$/, '');
-  // Parsers get a copy: pdf.js transfers (detaches) the buffer it is given.
-  let parsed: ParsedBook;
-  if (format === 'epub') parsed = await (await import('./epub-import')).importEpub(bytes.slice(0), fallbackTitle);
-  else parsed = await (await import('./pdf-import')).importPdf(bytes.slice(0), fallbackTitle);
-
+  const source: BookSource = { ext: format, bytes: await file.arrayBuffer() };
+  const parsed = await parseSource(source, file.name.replace(/\.[^.]+$/, ''));
   const book: Book = {
     id: crypto.randomUUID(),
     title: parsed.title,
@@ -28,5 +31,5 @@ export async function importBook(file: File): Promise<ImportedBook> {
     chapterCount: parsed.chapters.length,
     chapters: parsed.chapters,
   };
-  return { book, source: { ext: format, bytes } };
+  return { book, source };
 }

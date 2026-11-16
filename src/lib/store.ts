@@ -16,6 +16,10 @@ export interface BookStore {
   saveBook(book: Book, source?: BookSource): Promise<void>;
   saveAnnotations(a: Annotations): Promise<void>;
   deleteBook(id: string): Promise<void>;
+  /** The original file saved at import; null when it was not kept (browser build). */
+  getSource(id: string): Promise<{ ext: BookFormat; bytes: Uint8Array } | null>;
+  /** Swaps in a re-parsed book and its remapped annotations, keeping the previous parse as a backup. */
+  replaceBook(book: Book, a: Annotations): Promise<void>;
 }
 
 declare global {

@@ -32,6 +32,11 @@ export const idbStore: BookStore = {
   saveAnnotations: async (a) => {
     await (await dbPromise).put('annotations', a);
   },
+  getSource: async () => null,
+  async replaceBook(book, a) {
+    await idbStore.saveBook(book);
+    await idbStore.saveAnnotations(a);
+  },
   async deleteBook(id) {
     const db = await dbPromise;
     const tx = db.transaction(['meta', 'books', 'annotations'], 'readwrite');

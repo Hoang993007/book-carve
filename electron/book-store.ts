@@ -47,6 +47,29 @@ export async function registerStoreHandlers(root: string): Promise<void> {
     }
   });
 
+  ipcMain.handle('store:get-source', async (_e, id: unknown) => {
+    const dir = bookDir(id);
+    for (const ext of SOURCE_EXT) {
+      try {
+        return { ext, bytes: new Uint8Array(await fs.readFile(path.join(dir, `source.${ext}`))) };
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
+      }
+    }
+    return null;
+  });
+
+  // Re-parse result: the current parse is kept as book.prev.json, then text and annotations are replaced.
+  ipcMain.handle('store:replace-book', async (_e, book: WithId & { chapters?: unknown }, ann: WithId) => {
+    const dir = bookDir(book.id);
+    if (ann.bookId !== book.id) throw new Error('Annotations belong to another book');
+    await fs.copyFile(path.join(dir, 'book.json'), path.join(dir, 'book.prev.json'));
+    const { chapters: _chapters, ...meta } = book;
+    await writeJson(path.join(dir, 'book.json'), book, false);
+    await writeJson(path.join(dir, 'meta.json'), meta, true);
+    await writeJson(path.join(dir, 'annotations.json'), ann, true);
+  });
+
   ipcMain.handle('store:save-annotations', async (_e, ann: WithId) => {
     const dir = bookDir(ann.bookId);
     await fs.access(dir); // only for books that exist
