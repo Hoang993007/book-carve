@@ -27,7 +27,30 @@ when a real task reminds you of them, without rereading the book.
 
 Later: cross-book search over kept text and own paragraphs, second-brain sync, AI fluff hints.
 
-## Stack
+## Run
 
-Local web app: Vite + React + TypeScript, epub.js for EPUB, pdf.js for PDF text,
-IndexedDB for books and overlays. No server.
+```bash
+pnpm install
+pnpm dev        # http://localhost:5180
+pnpm test
+pnpm samples    # writes samples/sample.epub and samples/sample.pdf to try it out
+```
+
+## How it works
+
+Local web app: Vite + React + TypeScript. No server; everything lives in the
+browser's IndexedDB (`meta`, `books`, `annotations` stores).
+
+- Import (`src/import`): EPUB is unzipped with JSZip and each spine file becomes a
+  chapter (titles from the nav/NCX table of contents). PDF text comes from pdf.js;
+  lines are joined into paragraphs by line gaps and indentation, larger text becomes
+  headings, top-level bookmarks become chapters (else 10-page chunks). Scanned PDFs
+  without a text layer are rejected. Images are not kept.
+- Overlay (`src/lib`): a chapter is a list of blocks with character offsets.
+  Deletions are merged `[start, end)` ranges per chapter; own paragraphs sit after a
+  block; progress keeps the furthest block reached. The parsed book text never changes.
+- Reader (`src/book`): book text spans carry `data-s` offsets, so a browser selection
+  maps straight to a character range.
+
+Data stays in the browser profile it was created in. Clearing site data deletes it;
+Markdown export is the backup for now.
