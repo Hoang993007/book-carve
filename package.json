@@ -3,7 +3,7 @@
   "productName": "Book Carve",
   "description": "A reader that treats books as raw material: delete what you don't need, write your own ideas in.",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
