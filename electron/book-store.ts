@@ -1,6 +1,7 @@
 import { ipcMain, shell } from 'electron';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { readJson, writeJson } from './fs-utils.js';
 
 /**
  * Books live as plain files, one folder per book:
@@ -83,41 +84,4 @@ export async function registerStoreHandlers(root: string): Promise<void> {
 
   // Deleting a book moves its folder to the Recycle Bin, so it can still be recovered.
   ipcMain.handle('store:delete-book', (_e, id: unknown) => shell.trashItem(bookDir(id)));
-}
-
-async function readJson(file: string): Promise<unknown> {
-  try {
-    return JSON.parse(await fs.readFile(file, 'utf8'));
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return null;
-    throw e;
-  }
-}
-
-/** Writes are serialized per file and atomic (temp file + rename), so a crash never leaves half a file. */
-const queues = new Map<string, Promise<void>>();
-
-function writeJson(file: string, value: unknown, pretty: boolean): Promise<void> {
-  const run = async () => {
-    const tmp = `${file}.tmp`;
-    await fs.writeFile(tmp, JSON.stringify(value, null, pretty ? 2 : undefined), 'utf8');
-    await renameWithRetry(tmp, file);
-  };
-  const next = (queues.get(file) ?? Promise.resolve()).then(run, run);
-  queues.set(file, next.catch(() => undefined));
-  return next;
-}
-
-/** Windows can briefly lock a file (antivirus, OneDrive sync); retry a few times. */
-async function renameWithRetry(from: string, to: string): Promise<void> {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      await fs.rename(from, to);
-      return;
-    } catch (e) {
-      const code = (e as NodeJS.ErrnoException).code;
-      if (attempt >= 4 || (code !== 'EPERM' && code !== 'EBUSY' && code !== 'EACCES')) throw e;
-      await new Promise((r) => setTimeout(r, 50 * (attempt + 1)));
-    }
-  }
 }
