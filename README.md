@@ -59,6 +59,12 @@ Read the full idea and the research behind it in [docs/idea.md](docs/idea.md).
   and outlines, word counts, status (draft / writing / done), autosave, and it
   reopens at the exact spot you stopped. A quick idea inbox catches loose thoughts;
   move one into the end of any chapter when its place is clear.
+- **Keep the world your stories share.** A third space, "Thế giới", holds a setting
+  apart from the chapters: pages of lore and research, and an atlas to look at.
+  The atlas draws the lands as a relation diagram, lists the ages, the people and
+  their ties, and the main line of the story with the parts not yet written, and
+  every entry links back to the chapter it comes from. Works set in a world show
+  on its row.
 
 | Library | Original view (Ctrl+O) |
 |---|---|
@@ -116,12 +122,18 @@ books/<id>/book.json          parsed text (never changed after import)
 books/<id>/annotations.json   cuts, your own text, progress
 books/<id>/source.epub|pdf    the original file
 books/<id>/book.prev.json     the previous parse, after a re-parse
-writing/works/<id>/work.json  title, status, chapter order
-writing/works/<id>/parts/     one Markdown file per chapter
+writing/works/<id>/work.json  title, status, chapter order; "kind": "world" for a world,
+                              "world": <id> on a work set in one
+writing/works/<id>/parts/     one Markdown file per chapter (a world's pages)
 writing/works/<id>/notebook.md
 writing/works/<id>/removed/   chapters you removed, kept aside
+writing/works/<id>/atlas.json a world's atlas: ages, places, people, stories, map layout
 writing/ideas.json            the idea inbox
 ```
+
+The atlas is read-only in the app for now. Its shape is `WorldAtlas` in
+`src/world/atlas-types.ts`; each entry names its source chapters by the first 8
+characters of their id.
 
 To keep the library elsewhere (a synced folder, another drive), put
 `{ "dataDir": "D:\\Books\\BookCarve" }` in `%APPDATA%\Book Carve\config.json`, or set
