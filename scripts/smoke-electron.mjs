@@ -16,8 +16,20 @@ const app = await _electron.launch(exe ? { executablePath: exe, args: [], env } 
 const shot = async (page, name) => shots && page.screenshot({ path: path.join(shots, `${name}.png`) });
 const annotationsOf = (dir) => JSON.parse(readFileSync(path.join(dir, 'annotations.json'), 'utf8'));
 
+/** Two windows open: the reader (app page) and the floating button (a data: page). */
+async function windowWhere(test) {
+  for (let i = 0; i < 100; i++) {
+    const w = app.windows().find((x) => test(x.url()));
+    if (w) return w;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error('window not found');
+}
+const readerVisible = () =>
+  app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().startsWith('data:')).isVisible());
+
 try {
-  const page = await app.firstWindow();
+  const page = await windowWhere((u) => !u.startsWith('data:'));
   await page.setViewportSize({ width: 1280, height: 820 });
   await page.waitForSelector('.library');
 
@@ -108,6 +120,14 @@ try {
   await page.waitForSelector('.modal');
   await page.click('.modal button:has-text("Hủy")');
   assert.equal(readdirSync(path.join(dataDir, 'books')).length, 2, 'cancel keeps the book');
+
+  // Floating button: closing the reader only hides it; a click on the button brings it back.
+  const bubble = await windowWhere((u) => u.startsWith('data:'));
+  await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().startsWith('data:')).close());
+  assert.equal(await readerVisible(), false, 'closing the reader hides it');
+  await bubble.click('button');
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(await readerVisible(), true, 'bubble click shows the reader');
 
   console.log('Smoke test passed. Data folder:', dataDir);
 } finally {
