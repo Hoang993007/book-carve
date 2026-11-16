@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { importBook } from '../import/import-book';
-import { deleteBook, listAnnotations, listBooks, saveBook } from '../lib/db';
+import { deleteBook, isDesktopApp, listAnnotations, listBooks, saveBook, storageLocation } from '../lib/db';
 import { bookSummary } from '../lib/progress';
 import type { Annotations, BookMeta } from '../lib/types';
 
@@ -13,7 +13,12 @@ export function LibraryView({ onOpen }: Props) {
   const [anns, setAnns] = useState<Map<string, Annotations>>(new Map());
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [location, setLocation] = useState('');
   const input = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    void storageLocation().then(setLocation);
+  }, []);
 
   const refresh = useCallback(async () => {
     const [b, a] = await Promise.all([listBooks(), listAnnotations()]);
@@ -32,7 +37,8 @@ export function LibraryView({ onOpen }: Props) {
     for (const file of Array.from(files)) {
       setBusy(`Đang đọc ${file.name}…`);
       try {
-        await saveBook(await importBook(file));
+        const { book, source } = await importBook(file);
+        await saveBook(book, source);
       } catch (e) {
         failures.push(`${file.name}: ${e instanceof Error ? e.message : String(e)}`);
       }
@@ -44,7 +50,10 @@ export function LibraryView({ onOpen }: Props) {
   };
 
   const remove = async (b: BookMeta) => {
-    if (!window.confirm(`Xóa "${b.title}" khỏi thư viện? Mọi phần đã xóa và đoạn bạn viết trong sách này cũng mất, không khôi phục được.`)) return;
+    const consequence = isDesktopApp
+      ? 'Thư mục của sách (kèm phần đã xóa và đoạn bạn viết) sẽ được chuyển vào Thùng rác.'
+      : 'Mọi phần đã xóa và đoạn bạn viết trong sách này cũng mất, không khôi phục được.';
+    if (!window.confirm(`Xóa "${b.title}" khỏi thư viện? ${consequence}`)) return;
     await deleteBook(b.id);
     await refresh();
   };
@@ -75,6 +84,7 @@ export function LibraryView({ onOpen }: Props) {
           </li>
         ))}
       </ul>
+      {location && <p className="storage">Dữ liệu lưu tại: {location}</p>}
     </div>
   );
 }

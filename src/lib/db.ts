@@ -1,55 +1,29 @@
-import { openDB, type DBSchema } from 'idb';
+import type { BookSource, BookStore } from './store';
 import { emptyAnnotations, type Annotations, type Book, type BookMeta } from './types';
 
-interface CarveDB extends DBSchema {
-  meta: { key: string; value: BookMeta };
-  books: { key: string; value: Book };
-  annotations: { key: string; value: Annotations };
-}
+const store: Promise<BookStore> = window.bookCarve
+  ? Promise.resolve(window.bookCarve)
+  : import('./store-idb').then((m) => m.idbStore);
 
-const dbPromise = openDB<CarveDB>('book-carve', 1, {
-  upgrade(db) {
-    db.createObjectStore('meta', { keyPath: 'id' });
-    db.createObjectStore('books', { keyPath: 'id' });
-    db.createObjectStore('annotations', { keyPath: 'bookId' });
-  },
-});
+/** True inside the Electron app, where deleting a book goes to the Recycle Bin. */
+export const isDesktopApp = Boolean(window.bookCarve);
+
+export const storageLocation = async (): Promise<string> => (await store).location();
 
 export async function listBooks(): Promise<BookMeta[]> {
-  const all = await (await dbPromise).getAll('meta');
-  return all.sort((a, b) => b.addedAt - a.addedAt);
+  return (await (await store).listBooks()).sort((a, b) => b.addedAt - a.addedAt);
 }
 
-export async function listAnnotations(): Promise<Annotations[]> {
-  return (await dbPromise).getAll('annotations');
-}
+export const listAnnotations = async (): Promise<Annotations[]> => (await store).listAnnotations();
 
-export async function saveBook(book: Book): Promise<void> {
-  const db = await dbPromise;
-  const { chapters: _chapters, ...meta } = book;
-  const tx = db.transaction(['meta', 'books'], 'readwrite');
-  await Promise.all([tx.objectStore('meta').put(meta), tx.objectStore('books').put(book), tx.done]);
-}
+export const saveBook = async (book: Book, source?: BookSource): Promise<void> => (await store).saveBook(book, source);
 
-export async function getBook(id: string): Promise<Book | undefined> {
-  return (await dbPromise).get('books', id);
-}
+export const getBook = async (id: string): Promise<Book | null> => (await store).getBook(id);
 
-export async function deleteBook(id: string): Promise<void> {
-  const db = await dbPromise;
-  const tx = db.transaction(['meta', 'books', 'annotations'], 'readwrite');
-  await Promise.all([
-    tx.objectStore('meta').delete(id),
-    tx.objectStore('books').delete(id),
-    tx.objectStore('annotations').delete(id),
-    tx.done,
-  ]);
-}
+export const deleteBook = async (id: string): Promise<void> => (await store).deleteBook(id);
 
 export async function getAnnotations(bookId: string): Promise<Annotations> {
-  return (await (await dbPromise).get('annotations', bookId)) ?? emptyAnnotations(bookId);
+  return (await (await store).getAnnotations(bookId)) ?? emptyAnnotations(bookId);
 }
 
-export async function saveAnnotations(a: Annotations): Promise<void> {
-  await (await dbPromise).put('annotations', a);
-}
+export const saveAnnotations = async (a: Annotations): Promise<void> => (await store).saveAnnotations(a);
