@@ -14,12 +14,15 @@ when a real task reminds you of them, without rereading the book.
 ## MVP scope
 
 - Import EPUB and text-based PDF.
-- Opening a book lands on "What I took": every paragraph you wrote, in book order,
-  each with the kept text around it; click to jump to its spot.
+- Opening a book lands on "What I took": the kept text of chapters you have read,
+  with your own paragraphs standing out, in book order; click to jump to its spot.
+  Untouched, unread chapters are left out.
+- Progress saves itself per chapter: furthest point reached (pages for PDF,
+  % for EPUB), what is left, and "done" once you reach the end. No buttons.
 - Search inside a book across kept text and your own paragraphs.
 - Select + Backspace deletes; right-click restores struck text or inserts your own paragraph.
 - Two views: compact (deleted text hidden, `⋯` marker expands in place) and original (deleted text struck through).
-- Table of contents with read state and % of original text kept per chapter.
+- Table of contents with that progress and % of original text kept per chapter.
 - Export "my version" of a book to Markdown.
 
 Later: cross-book search over kept text and own paragraphs, second-brain sync, AI fluff hints.
