@@ -3,9 +3,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registerStoreHandlers } from './book-store.js';
 import { createBubble } from './bubble.js';
+import { resolveDataDir } from './data-dir.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = process.env.BOOK_CARVE_DATA || 'E:\\BookCarve\\data';
+const DATA_DIR = resolveDataDir();
 
 let win: BrowserWindow | null = null;
 let quitting = false;
