@@ -1,0 +1,127 @@
+/* A world's atlas: the map or a list on the left, a reading panel on the right. Land colors are muted so labels stay readable. */
+:root {
+  --land-forest: #dbe8dc;
+  --land-water: #dce7ef;
+  --land-realm: #efe4cc;
+  --land-dark: #e1dce9;
+  --land-dead: #e8e3da;
+  --land-sky: #e6e8ef;
+  --land-zone: #e2ece4;
+  --land-empty: #f0f1ee;
+  --story-main: #2f62c8;
+  --story-piece: #7a55a8;
+  --story-gap: #b4372b;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --land-forest: #22332a;
+    --land-water: #1f2d38;
+    --land-realm: #3a3020;
+    --land-dark: #2c2638;
+    --land-dead: #322d26;
+    --land-sky: #242836;
+    --land-zone: #22302a;
+    --land-empty: #1d1f1d;
+    --story-main: #8cb0f5;
+    --story-piece: #c3a3e6;
+    --story-gap: #ec7b6f;
+  }
+}
+
+.atlas { flex: 1; min-height: 0; overflow-y: auto; padding: 24px 28px 48px; }
+.atlas-head { max-width: 1240px; margin: 0 auto 16px; }
+.atlas-head h1 { font: 600 26px/1.2 var(--read); margin: 0 0 6px; }
+.atlas-head > .hint { max-width: 80ch; margin: 0 0 14px; }
+.atlas .hint { color: var(--ink-3); font-size: 13px; line-height: 1.5; }
+.atlas-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); }
+.atlas-tabs button { border: none; border-radius: 0; background: none; padding: 6px 12px; color: var(--ink-3); border-bottom: 2px solid transparent; margin-bottom: -1px; font-weight: 600; }
+.atlas-tabs button:hover { color: var(--ink); background: none; }
+.atlas-tabs button.current { color: var(--ink); border-bottom-color: var(--accent); }
+
+.atlas-grid { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.atlas-main { min-width: 0; }
+.atlas-board { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); overflow-x: auto; }
+.atlas-map { display: block; width: 100%; min-width: 620px; height: auto; }
+.atlas-map text { fill: var(--ink); font-family: var(--ui); text-anchor: middle; pointer-events: none; }
+.atlas-map .lbl { font-size: 13px; font-weight: 600; }
+.atlas-map .sub { font-size: 10.5px; fill: var(--ink-3); }
+.atlas-map .land { cursor: pointer; stroke: var(--line-2); stroke-width: 1.2; }
+.atlas-map .land:hover, .atlas-map .land.on { stroke: var(--accent); stroke-width: 2.5; }
+.atlas-map .land:focus-visible { outline: none; stroke: var(--accent); stroke-width: 3; }
+.atlas-map .route { fill: none; stroke: var(--ink-3); stroke-width: 1.3; stroke-dasharray: 4 5; opacity: 0.8; }
+
+.atlas-panel { position: sticky; top: 0; max-height: calc(100vh - 140px); overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 16px 18px; }
+.atlas-panel h2 { font: 600 20px/1.25 var(--read); margin: 0 0 4px; text-wrap: balance; }
+.atlas-panel .aka { color: var(--ink-3); font-size: 12.5px; margin-bottom: 8px; }
+.atlas-panel h3 { font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); margin: 16px 0 6px; font-weight: 600; }
+.atlas-panel p { margin: 0 0 8px; line-height: 1.55; }
+.atlas-panel ul { margin: 0; padding-left: 18px; line-height: 1.5; }
+.atlas-panel .sources { font-size: 13px; }
+.link-btn { border: none; background: none; padding: 0; color: var(--accent); text-align: left; }
+.link-btn:hover { background: none; text-decoration: underline; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12.5px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line-2); background: none; color: var(--ink-2); }
+.chip:hover { border-color: var(--accent); color: var(--ink); background: none; }
+.chip.chinh { border-color: var(--story-main); color: var(--story-main); }
+.chip.mau { border-color: var(--story-piece); color: var(--story-piece); }
+.chip.gap { border-style: dashed; border-color: var(--story-gap); color: var(--story-gap); }
+
+.eras { list-style: none; margin: 0; padding: 0; }
+.era { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 14px; padding-bottom: 18px; position: relative; }
+.era::before { content: ''; position: absolute; left: 14px; top: 30px; bottom: 0; width: 1px; background: var(--line-2); }
+.era:last-child::before { display: none; }
+.era-n { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; border: 1.5px solid var(--accent); color: var(--accent); font-weight: 600; font-size: 13px; background: var(--bg); }
+.era-body { min-width: 0; }
+.era-body h3 { font: 600 17px/1.3 var(--read); margin: 4px 0 0; }
+.era-body p { margin: 4px 0 8px; line-height: 1.55; }
+.era-body details { margin-top: 8px; font-size: 13.5px; }
+.era-body summary { cursor: pointer; color: var(--accent); }
+.era-body ul { margin: 6px 0 0; padding-left: 18px; line-height: 1.55; }
+
+.cast { display: grid; gap: 18px; }
+.cast h3, .stories h3, .diffs h3 { font: 600 16px/1.3 var(--read); margin: 0 0 8px; }
+.stories h3, .diffs h3 { margin-top: 22px; }
+.stories h3:first-child, .diffs h3:first-child { margin-top: 0; }
+.people { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
+.pick { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 11px; width: 100%; }
+.pick:hover, .pick.on { border-color: var(--accent); background: var(--surface); }
+.pick b { display: block; font-weight: 600; }
+.pick small { display: block; color: var(--ink-3); font-size: 12px; line-height: 1.35; }
+
+.track { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.track li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; }
+.track-n { font-weight: 600; color: var(--accent); text-align: right; padding-top: 8px; font-variant-numeric: tabular-nums; }
+.track .gap .pick { border-style: dashed; border-color: var(--story-gap); }
+.state { font-size: 11.5px; font-weight: 600; margin-left: 8px; padding: 1px 7px; border-radius: 999px; }
+.state.done { color: var(--story-main); background: color-mix(in srgb, var(--story-main) 14%, transparent); }
+.state.draft { color: var(--story-piece); background: color-mix(in srgb, var(--story-piece) 14%, transparent); }
+.state.none { color: var(--story-gap); background: color-mix(in srgb, var(--story-gap) 14%, transparent); }
+.piece-age { margin-bottom: 10px; }
+.piece-age .hint { margin-bottom: 4px; }
+
+.diffs { max-width: 1240px; margin: 0 auto; }
+.atlas-table { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.atlas-table table { border-collapse: collapse; width: 100%; min-width: 600px; font-size: 13.5px; }
+.atlas-table th, .atlas-table td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); line-height: 1.5; }
+.atlas-table th { font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.atlas-table tr:last-child td { border-bottom: none; }
+.atlas-table .settled { color: var(--story-main); font-weight: 600; }
+.atlas-table .unsettled { color: var(--story-gap); font-weight: 600; }
+.open-threads { columns: 2 300px; column-gap: 28px; padding-left: 18px; line-height: 1.55; }
+.open-threads li { break-inside: avoid; margin-bottom: 6px; }
+
+/* Worlds list and the world screen's switch between map and pages */
+.view-switch { display: inline-flex; gap: 2px; padding: 2px; border-radius: 7px; background: var(--sunken); }
+.view-switch button { border: none; background: none; padding: 3px 12px; border-radius: 5px; font-weight: 600; color: var(--ink-3); }
+.view-switch button:hover { color: var(--ink); background: none; }
+.view-switch button.current { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+.world-row { grid-template-columns: minmax(0, 1fr) 220px 110px 36px; }
+
+@media (max-width: 900px) {
+  .atlas { padding: 16px; }
+  .atlas-grid { grid-template-columns: minmax(0, 1fr); }
+  .atlas-panel { position: static; max-height: none; }
+  .world-row { grid-template-columns: minmax(0, 1fr) 36px; }
+  .world-row > :nth-child(2), .world-row > :nth-child(3) { display: none; }
+}

@@ -37,4 +37,8 @@ export const idbWritingStore: WritingStore = {
   },
   getIdeas: async () => (await (await dbPromise).get('ideas', 'all')) ?? [],
   saveIdeas: async (ideas) => void (await (await dbPromise).put('ideas', ideas, 'all')),
+  async getAtlas(worldId) {
+    const raw = await (await dbPromise).get('texts', key(worldId, 'atlas'));
+    return raw ? JSON.parse(raw) : null;
+  },
 };

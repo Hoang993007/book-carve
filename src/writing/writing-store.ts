@@ -1,3 +1,4 @@
+import type { WorldAtlas } from '../world/atlas-types';
 import type { Idea, PartRef, Work } from './types';
 
 /** Where your own writing persists: Markdown files on disk in the app, IndexedDB in a plain browser. */
@@ -14,6 +15,8 @@ export interface WritingStore {
   reveal(id: string): Promise<void>;
   getIdeas(): Promise<Idea[]>;
   saveIdeas(ideas: Idea[]): Promise<void>;
+  /** A world's atlas (atlas.json beside its pages), or null when it has none. */
+  getAtlas(worldId: string): Promise<WorldAtlas | null>;
 }
 
 declare global {
@@ -30,3 +33,5 @@ export const writing: Promise<WritingStore> = window.bookCarveWriting
 export async function listWorks(): Promise<Work[]> {
   return (await (await writing).listWorks()).sort((a, b) => b.updatedAt - a.updatedAt);
 }
+
+export const isWorld = (w: Work) => w.kind === 'world';

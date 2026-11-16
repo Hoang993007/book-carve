@@ -13,10 +13,20 @@ export interface Part {
 export const NOTEBOOK = 'notebook';
 export type PartRef = string; // a Part id, or NOTEBOOK
 
+/**
+ * "work": a piece you write. "world": the setting that one or more works share; its parts are
+ * pages of lore and research, and it may carry an atlas (a map you look at, kept in atlas.json).
+ */
+export type WorkKind = 'work' | 'world';
+
 /** A piece of your own writing: a story, an essay, a novel. A short piece is a work with one part. */
 export interface Work {
   id: string;
   title: string;
+  /** Missing on works saved before worlds existed: those are works. */
+  kind?: WorkKind;
+  /** The world this work is set in. */
+  world?: string;
   status: WorkStatus;
   parts: Part[];
   notebookWords: number;

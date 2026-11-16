@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { useConfirm } from '../ui/confirm';
-import { IconBack } from '../ui/icons';
-import { MoreMenu } from '../ui/menu';
-import { ReloadButton } from '../ui/reload-button';
 import { useToast } from '../ui/toast';
 import { PartsSidebar } from './parts-sidebar';
-import { NOTEBOOK, STATUS_LABEL, type Work, type WorkStatus } from './types';
+import { NOTEBOOK, type Work } from './types';
 import { useOutsideChanges } from './use-outside-changes';
 import { useWorkEditor } from './use-work-editor';
 import { workActions } from './work-actions';
+import { WorkTopbar } from './work-topbar';
 import { movePart, newPart, nextPartTitle, totalWords } from './work-ops';
 import { writing } from './writing-store';
 
@@ -23,8 +21,18 @@ function readSidePref(): boolean {
   }
 }
 
+interface Props {
+  initial: Work;
+  onBack: () => void;
+  /** Extra controls for the top bar, after the title (a world puts its map/pages switch there). */
+  topbarExtra?: ReactNode;
+  /** Where the back button goes, said aloud. */
+  backLabel?: string;
+}
+
 /** Writing one work: chapters on the side, the open chapter as a plain page, saved as you type. */
-export function WorkScreen({ initial, onBack }: { initial: Work; onBack: () => void }) {
+export function WorkScreen({ initial, onBack, topbarExtra, backLabel = 'Về danh sách tác phẩm' }: Props) {
+  const isWorld = initial.kind === 'world';
   const ed = useWorkEditor(initial);
   const { work, part, text } = ed;
   const [sideOpen, setSideOpen] = useState(readSidePref);
@@ -89,7 +97,7 @@ export function WorkScreen({ initial, onBack }: { initial: Work; onBack: () => v
   };
 
   const addPart = () => {
-    const p = newPart(nextPartTitle(work.parts));
+    const p = newPart(nextPartTitle(work.parts, isWorld ? 'Trang' : 'Chương'));
     ed.updateWork((w) => ({ ...w, parts: [...w.parts, p], updatedAt: Date.now() }));
     openPart(p.id);
   };
@@ -116,32 +124,18 @@ export function WorkScreen({ initial, onBack }: { initial: Work; onBack: () => v
 
   return (
     <div className="book-screen work-screen">
-      <header className="topbar">
-        <button className="icon-btn" onClick={back} aria-label="Về danh sách tác phẩm" title="Về danh sách tác phẩm"><IconBack /></button>
-        <input
-          ref={titleInput}
-          className="crumb-input"
-          value={work.title}
-          placeholder="Chưa đặt tên"
-          aria-label="Tên tác phẩm"
-          spellCheck={false}
-          onChange={(e) => ed.updateWork((w) => ({ ...w, title: e.target.value, updatedAt: Date.now() }))}
-          onKeyDown={toText}
-        />
-        <span className="spacer" />
-        <ReloadButton onReload={() => reload().catch(fail)} />
-        <select
-          className="status-select"
-          value={work.status}
-          aria-label="Trạng thái"
-          onChange={(e) => ed.updateWork((w) => ({ ...w, status: e.target.value as WorkStatus }))}
-        >
-          {(Object.keys(STATUS_LABEL) as WorkStatus[]).map((s) => (
-            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-          ))}
-        </select>
-        <MoreMenu label="Thêm" items={menu} />
-      </header>
+      <WorkTopbar
+        work={work}
+        titleInput={titleInput}
+        backLabel={backLabel}
+        onBack={back}
+        onTitle={(title) => ed.updateWork((w) => ({ ...w, title, updatedAt: Date.now() }))}
+        onTitleKey={toText}
+        onStatus={(status) => ed.updateWork((w) => ({ ...w, status }))}
+        onReload={() => reload().catch(fail)}
+        menu={menu}
+        extra={topbarExtra}
+      />
       <div className="reader-wrap">
         <PartsSidebar
           work={work}

@@ -11,7 +11,7 @@ import { PickTarget } from './pick-target';
 import type { Idea, Work } from './types';
 import { appendIdea, countWords, newWork, unusedIdeas } from './work-ops';
 import { WorkRow } from './work-row';
-import { listWorks, writing } from './writing-store';
+import { isWorld, listWorks, writing } from './writing-store';
 
 interface Props {
   onOpen: (id: string) => void;
@@ -33,7 +33,7 @@ export function WritingView({ onOpen, onSwitch }: Props) {
   const refresh = useCallback(async () => {
     const store = await writing;
     const [w, i] = await Promise.all([listWorks(), store.getIdeas()]);
-    setWorks(w);
+    setWorks(w.filter((x) => !isWorld(x)));
     setIdeas(i);
   }, []);
 

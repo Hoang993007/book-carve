@@ -28,6 +28,7 @@ export async function workMarkdown(work: Work): Promise<string> {
 
 export function workActions(work: Work, ctx: WorkActionContext): MenuEntry[] {
   const fail = (e: unknown) => ctx.toast(e instanceof Error ? e.message : String(e), true);
+  const noun = work.kind === 'world' ? 'thế giới' : 'tác phẩm';
   return [
     {
       label: 'Xuất Markdown',
@@ -37,15 +38,15 @@ export function workActions(work: Work, ctx: WorkActionContext): MenuEntry[] {
           downloadText(`${safeFileName(work.title, 'tac-pham')}.md`, await workMarkdown(work));
         })().catch(fail),
     },
-    { label: 'Mở thư mục tác phẩm', run: () => void writing.then((s) => s.reveal(work.id)).catch(fail) },
+    { label: `Mở thư mục ${noun}`, run: () => void writing.then((s) => s.reveal(work.id)).catch(fail) },
     {
-      label: 'Xóa tác phẩm…',
+      label: `Xóa ${noun}…`,
       danger: true,
       run: () =>
         void (async () => {
           const ok = await ctx.confirm({
             title: `Xóa "${work.title}"?`,
-            body: 'Thư mục tác phẩm được chuyển vào Thùng rác, vẫn lấy lại được từ đó.',
+            body: `Thư mục ${noun} được chuyển vào Thùng rác, vẫn lấy lại được từ đó.`,
             confirm: 'Xóa',
             danger: true,
           });

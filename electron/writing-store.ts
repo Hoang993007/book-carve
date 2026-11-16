@@ -9,6 +9,7 @@ import { readJson, writeJson, writeText } from './fs-utils.js';
  *   <root>/writing/works/<id>/parts/<part>.md    one file per chapter
  *   <root>/writing/works/<id>/notebook.md        characters, outline, research
  *   <root>/writing/works/<id>/removed/           chapters taken out of the work
+ *   <root>/writing/works/<id>/atlas.json         a world's map data (worlds only)
  *   <root>/writing/ideas.json                    loose ideas
  * The renderer sends ids only; every path is built here.
  */
@@ -77,6 +78,8 @@ export async function registerWritingHandlers(root: string): Promise<void> {
     const error = await shell.openPath(workDir(id));
     if (error) throw new Error(error);
   });
+
+  ipcMain.handle('writing:get-atlas', (_e, id: unknown) => readJson(path.join(workDir(id), 'atlas.json')));
 
   ipcMain.handle('writing:get-ideas', async () => (await readJson(ideasFile)) ?? []);
   ipcMain.handle('writing:save-ideas', async (_e, ideas: unknown) => {

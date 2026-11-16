@@ -3,8 +3,16 @@ import type { Work } from './types';
 import { WorkScreen } from './work-screen';
 import { writing } from './writing-store';
 
+interface Props {
+  workId: string;
+  /** Opens this chapter instead of the one you last wrote in. */
+  part?: string;
+  onBack: () => void;
+  backLabel?: string;
+}
+
 /** Loads a work, then hands it to the writing screen. */
-export function WorkView({ workId, onBack }: { workId: string; onBack: () => void }) {
+export function WorkView({ workId, part, onBack, backLabel }: Props) {
   const [work, setWork] = useState<Work | null | undefined>(undefined);
 
   useEffect(() => {
@@ -24,5 +32,6 @@ export function WorkView({ workId, onBack }: { workId: string; onBack: () => voi
       </div>
     );
   }
-  return <WorkScreen initial={work} onBack={onBack} />;
+  const initial = part && work.parts.some((p) => p.id === part) ? { ...work, last: { part, caret: 0 } } : work;
+  return <WorkScreen initial={initial} onBack={onBack} backLabel={backLabel} />;
 }

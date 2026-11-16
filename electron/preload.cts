@@ -27,4 +27,5 @@ contextBridge.exposeInMainWorld('bookCarveWriting', {
   reveal: (id: string) => ipcRenderer.invoke('writing:reveal', id),
   getIdeas: () => ipcRenderer.invoke('writing:get-ideas'),
   saveIdeas: (ideas: unknown) => ipcRenderer.invoke('writing:save-ideas', ideas),
+  getAtlas: (worldId: string) => ipcRenderer.invoke('writing:get-atlas', worldId),
 });

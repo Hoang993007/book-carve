@@ -25,10 +25,16 @@ export function movePart(parts: Part[], from: number, to: number): Part[] {
   return out;
 }
 
-/** The next default chapter title: "Chương N" after the highest number already used that way. */
-export function nextPartTitle(parts: Part[]): string {
-  const used = parts.map((p) => /^Chương (\d+)$/.exec(p.title)?.[1]).filter(Boolean).map(Number);
-  return `Chương ${Math.max(parts.length, ...used) + 1}`;
+/** The next default title, "Chương N" (or "Trang N" in a world), after the highest number already used that way. */
+export function nextPartTitle(parts: Part[], noun = 'Chương'): string {
+  const pattern = new RegExp(`^${noun} (\\d+)$`);
+  const used = parts.map((p) => pattern.exec(p.title)?.[1]).filter(Boolean).map(Number);
+  return `${noun} ${Math.max(parts.length, ...used) + 1}`;
+}
+
+/** A new world starts with one page to describe it. */
+export function newWorld(title: string, now = Date.now()): Work {
+  return { ...newWork(title, now), kind: 'world', status: 'writing', parts: [newPart('Tổng quan')] };
 }
 
 /** Appends an idea to the end of a chapter's text, as its own paragraph. */

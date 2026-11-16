@@ -18,6 +18,7 @@ const fmt = new Intl.NumberFormat('vi-VN');
 
 /** The work's chapters in order (drag to reorder, right-click for more), then its notebook. */
 export function PartsSidebar({ work, current, open, onToggle, onOpenPart, onAdd, onMove, onRemove }: Props) {
+  const noun = work.kind === 'world' ? 'Trang' : 'Chương';
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dropAt, setDropAt] = useState<number | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
@@ -35,18 +36,18 @@ export function PartsSidebar({ work, current, open, onToggle, onOpenPart, onAdd,
   const partMenu = (i: number): MenuItem[] => [
     ...(i > 0 ? [{ label: 'Chuyển lên', run: () => onMove(i, i - 1) }] : []),
     ...(i < work.parts.length - 1 ? [{ label: 'Chuyển xuống', run: () => onMove(i, i + 1) }] : []),
-    ...(work.parts.length > 1 ? [{ label: 'Xóa chương…', run: () => onRemove(work.parts[i].id) }] : []),
+    ...(work.parts.length > 1 ? [{ label: `Xóa ${noun.toLowerCase()}…`, run: () => onRemove(work.parts[i].id) }] : []),
   ];
 
   return (
     <aside className="toc-side parts-side">
       <div className="toc-head">
-        <span>Chương</span>
+        <span>{noun}</span>
         <button className="icon-btn" onClick={onToggle} aria-label="Thu gọn danh sách chương" title="Thu gọn (Ctrl+B)">
           <IconCollapse />
         </button>
       </div>
-      <nav className="toc-list" aria-label="Chương">
+      <nav className="toc-list" aria-label={noun}>
         {work.parts.map((p, i) => (
           <button
             key={p.id}
@@ -85,7 +86,7 @@ export function PartsSidebar({ work, current, open, onToggle, onOpenPart, onAdd,
           </button>
         ))}
         <button className="add-part" onClick={onAdd}>
-          + Thêm chương
+          + Thêm {noun.toLowerCase()}
         </button>
         <div className="parts-sep" />
         <button className={`toc-item part-item${current === NOTEBOOK ? ' current' : ''}`} onClick={() => onOpenPart(NOTEBOOK)}>
