@@ -148,6 +148,63 @@ try {
   await page.click('.modal button:has-text("Hủy")');
   assert.equal(readdirSync(path.join(dataDir, 'books')).length, 2, 'cancel keeps the book');
 
+  // Writing: capture an idea, write a work with two chapters and a notebook, place the idea, resume.
+  await page.click('.space-tabs button:has-text("Viết")');
+  await page.fill('.idea-capture', 'Một ý cho chương đầu');
+  await page.press('.idea-capture', 'Enter');
+  await page.waitForSelector('.idea:has-text("Một ý cho chương đầu")');
+  await page.click('button:has-text("Tác phẩm mới")');
+  await page.waitForSelector('.crumb-input:focus');
+  await page.keyboard.type('Truyện thử');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Đoạn mở đầu.');
+  await page.click('.add-part');
+  await page.waitForSelector('.part-item.current:has-text("Chương 2")');
+  await page.click('.manuscript');
+  await page.keyboard.type('Chương hai viết dở.');
+  await page.click('.part-item:has-text("Sổ tay")');
+  await page.click('.manuscript');
+  await page.keyboard.type('Nhân vật: An.');
+  await page.click('.part-item:has-text("Chương 2")');
+  await page.waitForSelector('.manuscript');
+  await page.click('.icon-btn[aria-label="Về danh sách tác phẩm"]');
+  await page.waitForSelector('.work-row:has-text("Truyện thử")');
+
+  await page.click('.idea .more .icon-btn');
+  await page.click('.menu button:has-text("Đưa vào tác phẩm")');
+  await page.click('.pick-list[aria-label="Chương"] button:has-text("Chương 1")');
+  await page.waitForSelector('.idea', { state: 'detached' });
+  const worksDir = path.join(dataDir, 'writing', 'works');
+  const workDir = path.join(worksDir, readdirSync(worksDir)[0]);
+  const work = JSON.parse(readFileSync(path.join(workDir, 'work.json'), 'utf8'));
+  const partText = (i) => readFileSync(path.join(workDir, 'parts', `${work.parts[i].id}.md`), 'utf8');
+  assert.equal(work.title, 'Truyện thử', 'work title saved');
+  assert.deepEqual(work.parts.map((p) => p.title), ['Chương 1', 'Chương 2'], 'chapters saved in order');
+  assert.equal(partText(0), 'Đoạn mở đầu.\n\nMột ý cho chương đầu\n', 'idea appended to the chosen chapter');
+  assert.equal(partText(1), 'Chương hai viết dở.', 'second chapter saved as Markdown');
+  assert.equal(readFileSync(path.join(workDir, 'notebook.md'), 'utf8'), 'Nhân vật: An.', 'notebook saved');
+  assert.equal(work.parts[0].words, 8, 'word count follows the text');
+  const ideas = JSON.parse(readFileSync(path.join(dataDir, 'writing', 'ideas.json'), 'utf8'));
+  assert.ok(ideas[0].usedIn, 'placed idea kept, marked as used');
+
+  // Reopening continues in the chapter you left; chapters reorder and are removed into "removed".
+  await page.click('.work-row .book-name');
+  await page.waitForSelector('.manuscript:focus');
+  assert.equal(await page.inputValue('.manuscript'), 'Chương hai viết dở.', 'reopens the last chapter');
+  await page.click('.part-item:has-text("Chương 2")', { button: 'right' });
+  await page.click('.context-menu button:has-text("Chuyển lên")');
+  await page.waitForSelector('.part-item:first-child:has-text("Chương 2")');
+  await page.click('.part-item:has-text("Chương 1")', { button: 'right' });
+  await page.click('.context-menu button:has-text("Xóa chương")');
+  await page.click('.modal button:has-text("Xóa chương")');
+  await page.waitForFunction(() => document.querySelectorAll('.parts-side .part-item').length === 2); // Chương 2 + Sổ tay
+  await page.click('.icon-btn[aria-label="Về danh sách tác phẩm"]');
+  await page.waitForSelector('.work-row');
+  const after2 = JSON.parse(readFileSync(path.join(workDir, 'work.json'), 'utf8'));
+  assert.deepEqual(after2.parts.map((p) => p.title), ['Chương 2'], 'chapter moved and removed');
+  assert.equal(readdirSync(path.join(workDir, 'removed')).length, 1, 'removed chapter kept aside');
+  await page.click('.space-tabs button:has-text("Thư viện")');
+
   // Floating button: closing the reader only hides it; a click on the button brings it back.
   const bubble = await windowWhere((u) => u.startsWith('data:'));
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find((w) => !w.webContents.getURL().startsWith('data:')).close());
