@@ -56,7 +56,11 @@ interface is in Vietnamese.
 
 ## Install
 
-Windows, built from source (Node 22+ and pnpm 10):
+Download the Windows installer from
+[Releases](https://github.com/Hoang993007/book-carve/releases/latest). It is not
+code-signed, so SmartScreen may warn on first run: **More info → Run anyway**.
+
+Or build it from source (Node 22+ and pnpm 10):
 
 ```bash
 pnpm install
