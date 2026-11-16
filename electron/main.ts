@@ -38,7 +38,11 @@ function createWindow(): void {
   win.on('closed', () => (win = null));
 }
 
-// One instance only: two windows writing the same files would overwrite each other.
+// A custom data folder (tests, a second library) gets its own profile, so it is not
+// blocked by the single-instance lock of the everyday app.
+if (process.env.BOOK_CARVE_DATA) app.setPath('userData', path.join(DATA_DIR, '.profile'));
+
+// One instance per data folder: two windows writing the same files would overwrite each other.
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
   app.on('second-instance', () => {
