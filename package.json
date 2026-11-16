@@ -14,7 +14,8 @@
     "test": "vitest run",
     "smoke": "node scripts/smoke-electron.mjs",
     "dist": "pnpm build && electron-builder --win nsis",
-    "samples": "node scripts/make-samples.mjs"
+    "samples": "node scripts/make-samples.mjs",
+    "icon": "electron scripts/make-icon.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
@@ -47,7 +48,8 @@
       "output": "release"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.png"
     },
     "nsis": {
       "oneClick": false,

@@ -15,6 +15,8 @@ function createWindow(): void {
     title: 'Book Carve',
     backgroundColor: '#f7f5f0',
     autoHideMenuBar: true,
+    // Packaged builds take the icon embedded in the exe; dev runs need it spelled out.
+    ...(app.isPackaged ? {} : { icon: path.join(here, '..', 'build', 'icon.png') }),
     webPreferences: {
       preload: path.join(here, 'preload.cjs'),
       contextIsolation: true,
