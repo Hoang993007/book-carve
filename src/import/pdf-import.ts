@@ -3,7 +3,7 @@ import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { makeChapter, normalizeSpace, type RawBlock } from '../lib/chapter';
 import type { Chapter } from '../lib/types';
 import type { ParsedBook } from './epub-import';
-import { median, toLines, toParagraphs, type PdfItem, type PdfLine } from './pdf-lines';
+import { dropRunningLines, median, toLines, toParagraphs, type PdfItem, type PdfPage } from './pdf-lines';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -14,19 +14,21 @@ const PAGES_PER_CHUNK = 10;
 export async function importPdf(data: ArrayBuffer, fallbackTitle: string): Promise<ParsedBook> {
   const doc = await pdfjs.getDocument({ data: new Uint8Array(data) }).promise;
 
-  const pageLines: PdfLine[][] = [];
+  const raw: PdfPage[] = [];
   for (let p = 1; p <= doc.numPages; p++) {
-    const content = await (await doc.getPage(p)).getTextContent();
+    const page = await doc.getPage(p);
+    const { width, height } = page.getViewport({ scale: 1 });
     const items: PdfItem[] = [];
-    for (const it of content.items) {
+    for (const it of (await page.getTextContent()).items) {
       if (!('str' in it)) continue;
-      items.push({ str: it.str, x: it.transform[4], y: it.transform[5], h: it.height || Math.abs(it.transform[3]), eol: it.hasEOL });
+      items.push({ str: it.str, x: it.transform[4], y: it.transform[5], w: it.width, h: it.height || Math.abs(it.transform[3]), eol: it.hasEOL });
     }
-    pageLines.push(toLines(items));
+    raw.push({ lines: toLines(items), width, height });
   }
 
+  const pageLines = dropRunningLines(raw);
   const bodySize = median(pageLines.flat().map((l) => l.h));
-  const pages = pageLines.map((lines, i) => (lines.length ? toParagraphs(lines, i + 1, bodySize) : []));
+  const pages = pageLines.map((lines, i) => toParagraphs(lines, i + 1, bodySize, raw[i].width));
   if (!pages.some((p) => p.length)) throw new Error('PDF không có lớp chữ (có thể là bản scan)');
 
   const sections = (await outlineSections(doc)) ?? chunkSections(doc.numPages);
