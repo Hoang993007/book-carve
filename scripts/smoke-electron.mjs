@@ -216,6 +216,28 @@ try {
   await page.click('.icon-btn[aria-label="Về danh sách tác phẩm"]');
   await page.waitForSelector('.work-row');
   assert.equal(readFileSync(path.join(workDir, 'parts', `${after2.parts[0].id}.md`), 'utf8'), 'Sửa từ ngoài app.', 'outside edit not overwritten');
+
+  // Worlds: a world has pages (no atlas yet), stays out of the works list, and a work set in it shows on its row.
+  await page.click('.space-tabs button:has-text("Thế giới")');
+  await page.click('button:has-text("Thế giới mới")');
+  await page.waitForSelector('.crumb-input:focus');
+  await page.keyboard.type('Thế giới thử');
+  await page.keyboard.press('Enter');
+  await page.keyboard.type('Luật của thế giới.');
+  assert.equal(await page.textContent('.toc-head span'), 'Trang', 'a world lists pages');
+  assert.equal(await page.$('.status-select'), null, 'a world has no writing status');
+  assert.ok(await page.$('.view-switch button:has-text("Bản đồ")[disabled]'), 'no atlas yet');
+  await page.click('.icon-btn[aria-label="Về danh sách thế giới"]');
+  await page.waitForSelector('.world-row:has-text("Thế giới thử")');
+  const worldDir = readdirSync(worksDir).map((d) => path.join(worksDir, d)).find((d) => JSON.parse(readFileSync(path.join(d, 'work.json'), 'utf8')).kind === 'world');
+  const world = JSON.parse(readFileSync(path.join(worldDir, 'work.json'), 'utf8'));
+  assert.equal(readFileSync(path.join(worldDir, 'parts', `${world.parts[0].id}.md`), 'utf8'), 'Luật của thế giới.');
+  writeFileSync(path.join(workDir, 'work.json'), JSON.stringify({ ...JSON.parse(readFileSync(path.join(workDir, 'work.json'), 'utf8')), world: world.id }, null, 2));
+  await page.click('.library-head .reload-btn');
+  await page.waitForSelector('.world-row:has-text("Đổi từ ngoài app")');
+  await page.click('.space-tabs button:has-text("Viết")');
+  await page.waitForSelector('.work-row');
+  assert.equal(await page.$('.work-row:has-text("Thế giới thử")'), null, 'worlds stay out of the works list');
   await page.click('.space-tabs button:has-text("Thư viện")');
 
   // Floating button: closing the reader only hides it; a click on the button brings it back.
