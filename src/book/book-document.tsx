@@ -3,7 +3,9 @@ import type { Book, Note } from '../lib/types';
 import { ChapterSection } from './chapter-section';
 import type { ViewMode } from './chapter-text';
 import { ContextMenu } from './context-menu';
+import { cutKey } from './cut-runs';
 import type { AnnotationsApi } from './use-annotations';
+import { useCutRuns } from './use-cut-runs';
 import { useEditCommands } from './use-edit-commands';
 import { useEditor } from './use-editor';
 
@@ -45,12 +47,22 @@ export function BookDocument({ book, api, mode, openChapters, onOpenChapter, sur
     return next;
   }, [ann?.notes, book]);
 
+  const { shown, runs } = useCutRuns(book, ann?.deleted, notesByChapter, openChapters, mode);
+  const followers = useRef(runs.followers);
+  followers.current = runs.followers;
+
+  // A "⋯" that stands for cuts in later chapters too opens and closes all of them.
   const onToggleExpand = useCallback((chapterId: string, start: number) => {
     setExpanded((prev) => {
-      const set = new Set(prev.get(chapterId) ?? []);
-      if (set.has(start)) set.delete(start);
-      else set.add(start);
-      return new Map(prev).set(chapterId, set);
+      const open = !prev.get(chapterId)?.has(start);
+      const next = new Map(prev);
+      for (const c of [{ chapterId, start }, ...(followers.current.get(cutKey(chapterId, start)) ?? [])]) {
+        const set = new Set(next.get(c.chapterId) ?? []);
+        if (open) set.add(c.start);
+        else set.delete(c.start);
+        next.set(c.chapterId, set);
+      }
+      return next;
     });
   }, []);
 
@@ -72,12 +84,14 @@ export function BookDocument({ book, api, mode, openChapters, onOpenChapter, sur
             chapter={ch}
             index={i}
             open={openChapters.has(ch.id)}
-            ranges={ann.deleted[ch.id]}
+            ranges={mode === 'compact' ? shown.get(ch.id) : ann.deleted[ch.id]}
             notes={notesByChapter.get(ch.id) ?? NO_NOTES}
             mode={mode}
             expanded={expanded.get(ch.id) ?? NO_EXPANDED}
             onToggleExpand={onToggleExpand}
             onOpen={onOpenChapter}
+            hideLead={runs.hideLead.has(ch.id)}
+            joinsNext={runs.joinsNext.has(ch.id)}
           />
         ))}
       </div>

@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from 'react';
 import { blockEnd } from '../lib/chapter';
 import { segmentsOf, type Segment } from '../lib/ranges';
 import type { Block, Chapter, Note, TextRange } from '../lib/types';
+import { MARKER_MIN_CHARS } from './cut-runs';
 import { NoteEl } from './note-el';
 
 export type ViewMode = 'compact' | 'original';
@@ -14,11 +15,11 @@ interface Props {
   /** Deleted ranges opened in place, keyed by their start offset. */
   expanded: ReadonlySet<number>;
   onToggleExpand: (rangeStart: number) => void;
+  /** The opening cut continues the previous chapter's, whose "⋯" stands for both. */
+  hideLead?: boolean;
 }
 
 const byTime = (a: Note, b: Note) => a.createdAt - b.createdAt;
-/** Cuts shorter than this leave no "⋯" behind. */
-const MARKER_MIN_CHARS = 20;
 
 /** Renders a chapter with deletions applied and the reader's own text in place (inline or as paragraphs). */
 export function ChapterText(props: Props) {
@@ -92,7 +93,7 @@ function renderSegment(block: Block, seg: Segment, props: Props): ReactNode {
   if (range && range[1] - range[0] < MARKER_MIN_CHARS) return null;
   const open = props.expanded.has(rangeStart);
   const marker =
-    seg.start === rangeStart ? (
+    seg.start === rangeStart && !(props.hideLead && rangeStart === 0) ? (
       <button
         key={`m${seg.start}`}
         className={`cut-marker${open ? ' open' : ''}`}
