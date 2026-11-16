@@ -3,7 +3,7 @@ import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { makeChapter, normalizeSpace, type RawBlock } from '../lib/chapter';
 import type { Chapter } from '../lib/types';
 import type { ParsedBook } from './epub-import';
-import { dropRunningLines, median, toLines, toParagraphs, type PdfItem, type PdfPage } from './pdf-lines';
+import { dropRunningLines, joinAcrossPages, median, toLines, toParagraphs, type PdfItem, type PdfPage } from './pdf-lines';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -34,7 +34,7 @@ export async function importPdf(data: ArrayBuffer, fallbackTitle: string): Promi
   const sections = (await outlineSections(doc)) ?? chunkSections(doc.numPages);
   const chapters: Chapter[] = [];
   for (const s of sections) {
-    const blocks: RawBlock[] = pages.slice(s.from - 1, s.to).flat();
+    const blocks: RawBlock[] = joinAcrossPages(pages.slice(s.from - 1, s.to));
     if (blocks.length) chapters.push(makeChapter(`c${chapters.length}`, s.title, blocks));
   }
 

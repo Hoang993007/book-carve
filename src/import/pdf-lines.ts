@@ -121,6 +121,24 @@ export function toParagraphs(lines: PdfLine[], page: number, bodySize: number, p
   return out;
 }
 
+/**
+ * Mends paragraphs cut by a page break: when a page ends mid-sentence and the next page
+ * starts with a lowercase word, the two pieces are one paragraph.
+ */
+export function joinAcrossPages(pages: RawBlock[][]): RawBlock[] {
+  const out: RawBlock[] = [];
+  for (const page of pages) {
+    page.forEach((block, i) => {
+      const prev = out[out.length - 1];
+      const continues =
+        i === 0 && prev && prev.kind === 'p' && block.kind === 'p' && !/[.!?…:;”"»)\]]$/.test(prev.text) && /^[a-zà-ỹđ(“"«]/.test(block.text);
+      if (continues) out[out.length - 1] = { ...prev, text: joinLine(prev.text, block.text) };
+      else out.push(block);
+    });
+  }
+  return out;
+}
+
 function joinLine(text: string, next: string): string {
   if (/[A-Za-zÀ-ỹ]-$/.test(text) && /^[a-zà-ỹ]/.test(next)) return text.slice(0, -1) + next;
   return `${text} ${next}`;

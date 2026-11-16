@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dropRunningLines, toLines, toParagraphs, type PdfItem, type PdfLine } from './pdf-lines';
+import { dropRunningLines, joinAcrossPages, toLines, toParagraphs, type PdfItem, type PdfLine } from './pdf-lines';
 
 const item = (str: string, x: number, y: number, h = 10, eol = false, w = str.length * 5): PdfItem => ({ str, x, y, w, h, eol });
 const texts = (lines: PdfLine[], page = 1, body = 10, width = 0) => toParagraphs(lines, page, body, width).map((b) => `${b.kind}:${b.text}`);
@@ -67,6 +67,21 @@ describe('toParagraphs', () => {
       'p:Begin Reading',
       'p:Table of Contents',
       'p:In accordance with the Copyright Act, the scanning and sharing of any part of this book without the permission of the publisher is unlawful, so',
+    ]);
+  });
+});
+
+describe('joinAcrossPages', () => {
+  it('mends a paragraph cut by a page break, but not one that ended its sentence', () => {
+    const blocks = joinAcrossPages([
+      [{ kind: 'p', text: 'Jung xuất bản cuốn sách. Phản bác', page: 5 }],
+      [{ kind: 'p', text: 'lại Freud là một hành động táo bạo.', page: 6 }, { kind: 'p', text: 'Đoạn mới.', page: 6 }],
+      [{ kind: 'p', text: 'trang sau bắt đầu chữ thường', page: 7 }],
+    ]);
+    expect(blocks).toEqual([
+      { kind: 'p', text: 'Jung xuất bản cuốn sách. Phản bác lại Freud là một hành động táo bạo.', page: 5 },
+      { kind: 'p', text: 'Đoạn mới.', page: 6 },
+      { kind: 'p', text: 'trang sau bắt đầu chữ thường', page: 7 },
     ]);
   });
 });
