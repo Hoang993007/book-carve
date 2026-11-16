@@ -1,12 +1,14 @@
 import { useState } from 'react';
 
 const KEYS: [string, string][] = [
-  ['Bôi đen + Backspace', 'Xóa phần đã chọn'],
-  ['Enter', 'Chèn ý của bạn sau đoạn đang chọn'],
-  ['Chuột phải', 'Khôi phục, xóa hoặc chèn ý'],
+  ['Backspace / Delete', 'Xóa ký tự (bôi đen để xóa cả khúc)'],
+  ['Ctrl+Backspace', 'Xóa cả từ'],
+  ['Gõ chữ', 'Viết ý của bạn ngay tại con trỏ'],
+  ['Enter', 'Viết ý thành đoạn riêng bên dưới'],
+  ['Chuột phải', 'Khôi phục phần đã xóa'],
   ['Ctrl+Z / Ctrl+Y', 'Hoàn tác / làm lại'],
-  ['O', 'Bản gọn ↔ bản gốc'],
-  ['[', 'Thu gọn / hiện mục lục'],
+  ['Ctrl+O', 'Bản gọn ↔ bản gốc'],
+  ['Ctrl+B', 'Thu gọn / hiện mục lục'],
   ['Ctrl+F', 'Tìm trong sách'],
   ['Esc', 'Đóng tìm kiếm'],
 ];

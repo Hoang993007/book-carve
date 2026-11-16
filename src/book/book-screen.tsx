@@ -104,8 +104,8 @@ export function BookScreen({ book, api, onBack, onReload }: Props) {
   });
 
   const menuItems = [
-    { label: tocOpen ? 'Thu gọn mục lục' : 'Hiện mục lục', shortcut: '[', run: toggleToc },
-    { label: mode === 'compact' ? 'Hiện bản gốc' : 'Về bản gọn', shortcut: 'O', run: () => setMode((m) => (m === 'compact' ? 'original' : 'compact')) },
+    { label: tocOpen ? 'Thu gọn mục lục' : 'Hiện mục lục', shortcut: 'Ctrl+B', run: toggleToc },
+    { label: mode === 'compact' ? 'Hiện bản gốc' : 'Về bản gọn', shortcut: 'Ctrl+O', run: () => setMode((m) => (m === 'compact' ? 'original' : 'compact')) },
     { label: 'Tìm trong sách', shortcut: 'Ctrl+F', run: () => setSearchOpen(true) },
     ...bookActions(book.id, book.title, {
       confirm,

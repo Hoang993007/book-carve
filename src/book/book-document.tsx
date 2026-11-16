@@ -5,6 +5,7 @@ import type { ViewMode } from './chapter-text';
 import { ContextMenu } from './context-menu';
 import type { AnnotationsApi } from './use-annotations';
 import { useEditCommands } from './use-edit-commands';
+import { useEditor } from './use-editor';
 
 interface Props {
   book: Book;
@@ -19,25 +20,16 @@ interface Props {
 const NO_EXPANDED: ReadonlySet<number> = new Set();
 const NO_NOTES: Note[] = [];
 
-/** The whole book as one carved document: every chapter in order, edits in place. */
+/** The whole book as one editable, carved document: every chapter in order, edits in place. */
 export function BookDocument({ book, api, mode, openChapters, onOpenChapter, surface }: Props) {
-  const { ann, update } = api;
-  const [editingNote, setEditingNote] = useState<string | null>(null);
-  const editingRef = useRef<string | null>(null);
+  const { ann } = api;
   const [expanded, setExpanded] = useState<Map<string, ReadonlySet<number>>>(new Map());
+  // Bumping a chapter's revision re-renders it from scratch (after an input method wrote into it).
+  const [revisions, setRevisions] = useState<Map<string, number>>(new Map());
+  const remount = useCallback((chapterId: string) => setRevisions((r) => new Map(r).set(chapterId, (r.get(chapterId) ?? 0) + 1)), []);
 
-  const onEditNote = useCallback(
-    (id: string | null) => {
-      const current = editingRef.current;
-      // Leaving an empty paragraph removes it.
-      if (current && current !== id) update((a) => ({ ...a, notes: a.notes.filter((n) => n.id !== current || n.text.trim()) }));
-      editingRef.current = id;
-      setEditingNote(id);
-    },
-    [update],
-  );
-
-  const { menu, closeMenu, onContextMenu } = useEditCommands(surface, book, api, onEditNote);
+  useEditor(surface, book, api, remount);
+  const { menu, closeMenu, onContextMenu } = useEditCommands(surface, book, api);
 
   // Per-chapter note lists that keep their identity while unchanged, so memoized chapters skip re-rendering.
   const previous = useRef(new Map<string, Note[]>());
@@ -53,11 +45,6 @@ export function BookDocument({ book, api, mode, openChapters, onOpenChapter, sur
     return next;
   }, [ann?.notes, book]);
 
-  const onNoteChange = useCallback(
-    (id: string, text: string) => update((a) => ({ ...a, notes: a.notes.map((n) => (n.id === id ? { ...n, text } : n)) })),
-    [update],
-  );
-
   const onToggleExpand = useCallback((chapterId: string, start: number) => {
     setExpanded((prev) => {
       const set = new Set(prev.get(chapterId) ?? []);
@@ -69,25 +56,32 @@ export function BookDocument({ book, api, mode, openChapters, onOpenChapter, sur
 
   if (!ann) return null;
   return (
-    <div className="document" ref={surface} onContextMenu={onContextMenu}>
-      {book.chapters.map((ch, i) => (
-        <ChapterSection
-          key={ch.id}
-          chapter={ch}
-          index={i}
-          open={openChapters.has(ch.id)}
-          ranges={ann.deleted[ch.id]}
-          notes={notesByChapter.get(ch.id) ?? NO_NOTES}
-          mode={mode}
-          expanded={expanded.get(ch.id) ?? NO_EXPANDED}
-          onToggleExpand={onToggleExpand}
-          onOpen={onOpenChapter}
-          editingNote={editingNote}
-          onEditNote={onEditNote}
-          onNoteChange={onNoteChange}
-        />
-      ))}
+    <>
+      <div
+        className="document"
+        ref={surface}
+        contentEditable
+        suppressContentEditableWarning
+        spellCheck={false}
+        onContextMenu={onContextMenu}
+        onDragStart={(e) => e.preventDefault()}
+      >
+        {book.chapters.map((ch, i) => (
+          <ChapterSection
+            key={`${ch.id}:${revisions.get(ch.id) ?? 0}`}
+            chapter={ch}
+            index={i}
+            open={openChapters.has(ch.id)}
+            ranges={ann.deleted[ch.id]}
+            notes={notesByChapter.get(ch.id) ?? NO_NOTES}
+            mode={mode}
+            expanded={expanded.get(ch.id) ?? NO_EXPANDED}
+            onToggleExpand={onToggleExpand}
+            onOpen={onOpenChapter}
+          />
+        ))}
+      </div>
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={closeMenu} />}
-    </div>
+    </>
   );
 }

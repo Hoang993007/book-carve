@@ -1,14 +1,14 @@
 import { memo } from 'react';
 import { foldForSearch } from '../lib/taken';
 import type { Chapter, Note, TextRange } from '../lib/types';
-import { ChapterText, type NoteHandlers, type ViewMode } from './chapter-text';
+import { ChapterText, type ViewMode } from './chapter-text';
 
-interface Props extends NoteHandlers {
+interface Props {
   chapter: Chapter;
   index: number;
   /** Unread, untouched chapters stay folded to one line. */
   open: boolean;
-  ranges: TextRange[];
+  ranges: TextRange[] | undefined;
   notes: Note[];
   mode: ViewMode;
   expanded: ReadonlySet<number>;
@@ -32,7 +32,11 @@ export const ChapterSection = memo(function ChapterSection(props: Props) {
   const titleInText = chapter.blocks[0]?.kind === 'h' && foldForSearch(chapter.blocks[0].text) === foldForSearch(chapter.title);
   return (
     <section className={`chapter${open ? '' : ' folded'}`} data-chapter={chapter.id} id={`chapter-${index}`}>
-      {(!open || !titleInText) && <h2 className="chapter-title">{chapter.title}</h2>}
+      {(!open || !titleInText) && (
+        <h2 className="chapter-title" contentEditable={false}>
+          {chapter.title}
+        </h2>
+      )}
       {open ? (
         <ChapterText
           chapter={chapter}
@@ -41,12 +45,9 @@ export const ChapterSection = memo(function ChapterSection(props: Props) {
           mode={props.mode}
           expanded={props.expanded}
           onToggleExpand={(start) => props.onToggleExpand(chapter.id, start)}
-          editingNote={props.editingNote}
-          onEditNote={props.onEditNote}
-          onNoteChange={props.onNoteChange}
         />
       ) : (
-        <button className="unread" onClick={() => props.onOpen(index)}>
+        <button className="unread" contentEditable={false} onClick={() => props.onOpen(index)}>
           Chưa đọc · {pageCount(chapter)} trang · Đọc chương này
         </button>
       )}

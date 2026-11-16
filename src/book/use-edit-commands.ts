@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState, type MouseEvent as ReactMouseEvent, type RefObject } from 'react';
 import { addRange, overlaps, removeRange } from '../lib/ranges';
-import type { Annotations, Book, Note } from '../lib/types';
+import type { Book } from '../lib/types';
 import type { MenuItem } from './context-menu';
-import { blockAtPointer, blockAtSelection, selectionRanges, type BlockRef, type ChapterRange } from './selection';
+import { selectionRanges, type ChapterRange } from './selection';
 import type { AnnotationsApi } from './use-annotations';
 
 export interface MenuState {
@@ -11,19 +11,8 @@ export interface MenuState {
   items: MenuItem[];
 }
 
-const isTyping = (t: EventTarget | null) => t instanceof HTMLElement && (/^(TEXTAREA|INPUT)$/.test(t.tagName) || t.isContentEditable);
-
-/**
- * Editing gestures on the reading surface:
- * select + Backspace/Delete deletes · Enter inserts an own paragraph after the current one ·
- * Ctrl+Z / Ctrl+Y undo and redo · right-click restores, deletes or inserts.
- */
-export function useEditCommands(
-  root: RefObject<HTMLElement | null>,
-  book: Book,
-  api: AnnotationsApi,
-  onNoteCreated: (id: string) => void,
-) {
+/** Ctrl+Z / Ctrl+Y everywhere on the surface, and the right-click menu (restore, delete, remove own text). */
+export function useEditCommands(root: RefObject<HTMLElement | null>, book: Book, api: AnnotationsApi) {
   const { ann, update, undo, redo } = api;
   const [menu, setMenu] = useState<MenuState | null>(null);
 
@@ -44,70 +33,41 @@ export function useEditCommands(
     [update],
   );
 
-  const insertNote = useCallback(
-    (at: BlockRef) => {
-      const note: Note = { id: crypto.randomUUID(), chapterId: at.chapterId, afterBlock: at.block, text: '', createdAt: Date.now() };
-      update((a) => ({ ...a, notes: [...a.notes, note] }), { undoable: true });
-      window.getSelection()?.removeAllRanges();
-      onNoteCreated(note.id);
-    },
-    [update, onNoteCreated],
-  );
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e.target)) return;
-      const el = root.current;
-      if (!el) return;
-      const mod = e.ctrlKey || e.metaKey;
-      if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+      if (!(e.ctrlKey || e.metaKey) || e.target instanceof HTMLInputElement) return;
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) {
         e.preventDefault();
         undo();
-      } else if (mod && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) {
+      } else if (k === 'y' || (k === 'z' && e.shiftKey)) {
         e.preventDefault();
         redo();
-      } else if (e.key === 'Backspace' || e.key === 'Delete') {
-        const parts = selectionRanges(el, book.chapters);
-        if (!parts.length) return;
-        e.preventDefault();
-        apply(parts, true);
-      } else if (e.key === 'Enter' && !mod) {
-        const at = blockAtSelection(el);
-        if (!at) return;
-        e.preventDefault();
-        insertNote(at);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [root, book, apply, insertNote, undo, redo]);
+  }, [undo, redo]);
 
   const onContextMenu = useCallback(
     (e: ReactMouseEvent) => {
       const el = root.current;
-      if (!el || !ann || isTyping(e.target)) return;
-      e.preventDefault();
+      if (!el || !ann) return;
       const items: MenuItem[] = [];
-      const noteEl = (e.target as Element).closest<HTMLElement>('[data-note]');
       const parts = selectionRanges(el, book.chapters);
+      const noteEl = (e.target as Element).closest<HTMLElement>('[data-note]');
       if (parts.length) {
-        if (parts.some((p) => overlaps(ann.deleted[p.chapterId] ?? [], p.range))) {
-          items.push({ label: 'Khôi phục', run: () => apply(parts, false) });
-        }
+        if (parts.some((p) => overlaps(ann.deleted[p.chapterId] ?? [], p.range))) items.push({ label: 'Khôi phục', run: () => apply(parts, false) });
         items.push({ label: 'Xóa', run: () => apply(parts, true) });
       } else if (noteEl) {
         const id = noteEl.dataset.note;
-        items.push({
-          label: 'Xóa đoạn của tôi',
-          run: () => update((a: Annotations) => ({ ...a, notes: a.notes.filter((n) => n.id !== id) }), { undoable: true }),
-        });
-      } else {
-        const at = blockAtPointer(el, e.target, e.clientY);
-        if (at) items.push({ label: 'Chèn ý của tôi ở đây', run: () => insertNote(at) });
+        items.push({ label: 'Xóa ý này', run: () => update((a) => ({ ...a, notes: a.notes.filter((n) => n.id !== id) }), { undoable: true }) });
       }
-      if (items.length) setMenu({ x: e.clientX, y: e.clientY, items });
+      if (!items.length) return;
+      e.preventDefault();
+      setMenu({ x: e.clientX, y: e.clientY, items });
     },
-    [root, ann, book, apply, update, insertNote],
+    [root, ann, book, apply, update],
   );
 
   const closeMenu = useCallback(() => setMenu(null), []);

@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getAnnotations, saveAnnotations } from '../lib/db';
 import type { Annotations } from '../lib/types';
 
-export type UpdateAnnotations = (fn: (a: Annotations) => Annotations, opts?: { undoable?: boolean }) => void;
+/**
+ * `undoable: true` records one undo step. A string groups a burst of edits (typing in one
+ * note) into a single step while the same key repeats within a short pause.
+ */
+export type UpdateAnnotations = (fn: (a: Annotations) => Annotations, opts?: { undoable?: boolean | string }) => void;
 
 export interface AnnotationsApi {
   ann: Annotations | null;
@@ -17,6 +21,7 @@ export interface AnnotationsApi {
 
 type Snapshot = Pick<Annotations, 'deleted' | 'notes'>;
 const HISTORY = 200;
+const BURST_MS = 1200;
 
 /** Loads a book's annotations, saves every change shortly after it happens, and keeps undo history. */
 export function useAnnotations(bookId: string): AnnotationsApi {
@@ -27,6 +32,7 @@ export function useAnnotations(bookId: string): AnnotationsApi {
   const past = useRef<Snapshot[]>([]);
   const future = useRef<Snapshot[]>([]);
   const closed = useRef(false);
+  const lastBurst = useRef<{ key: string; at: number } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -75,8 +81,14 @@ export function useAnnotations(bookId: string): AnnotationsApi {
       const next = fn(prev);
       if (next === prev) return;
       if (opts?.undoable) {
-        past.current.push({ deleted: prev.deleted, notes: prev.notes });
-        if (past.current.length > HISTORY) past.current.shift();
+        const now = Date.now();
+        const key = typeof opts.undoable === 'string' ? opts.undoable : null;
+        const sameBurst = key !== null && lastBurst.current?.key === key && now - lastBurst.current.at < BURST_MS;
+        if (!sameBurst) {
+          past.current.push({ deleted: prev.deleted, notes: prev.notes });
+          if (past.current.length > HISTORY) past.current.shift();
+        }
+        lastBurst.current = key ? { key, at: now } : null;
         future.current = [];
       }
       commit(next);
@@ -89,6 +101,7 @@ export function useAnnotations(bookId: string): AnnotationsApi {
       const cur = latest.current;
       const snap = from.current.pop();
       if (!cur || !snap) return false;
+      lastBurst.current = null;
       to.current.push({ deleted: cur.deleted, notes: cur.notes });
       commit({ ...cur, ...snap });
       return true;

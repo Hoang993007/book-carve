@@ -27,7 +27,7 @@ export function TocSidebar({ book, ann, current, open, onToggle, onJump }: Props
   if (!open) {
     return (
       <aside className="toc-side collapsed">
-        <button className="icon-btn" onClick={onToggle} aria-label="Hiện mục lục" title="Hiện mục lục ( [ )">
+        <button className="icon-btn" onClick={onToggle} aria-label="Hiện mục lục" title="Hiện mục lục (Ctrl+B)">
           <IconExpand />
         </button>
       </aside>
@@ -38,7 +38,7 @@ export function TocSidebar({ book, ann, current, open, onToggle, onJump }: Props
     <aside className="toc-side">
       <div className="toc-head">
         <span>Mục lục</span>
-        <button className="icon-btn" onClick={onToggle} aria-label="Thu gọn mục lục" title="Thu gọn mục lục ( [ )">
+        <button className="icon-btn" onClick={onToggle} aria-label="Thu gọn mục lục" title="Thu gọn mục lục (Ctrl+B)">
           <IconCollapse />
         </button>
       </div>
