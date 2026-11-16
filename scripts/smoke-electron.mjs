@@ -52,6 +52,15 @@ try {
   assert.equal(ann.deleted.c1.length, 1, 'deletion saved');
   assert.equal(ann.notes[0].text, 'Ý của tôi: bắt đầu với hai phút.', 'own paragraph saved');
 
+  // Re-parse from the stored original: annotations must survive and the old parse is kept.
+  await page.click('text=← Thư viện');
+  await page.click('button[aria-label^="Tách lại Thói quen"]');
+  await page.waitForSelector('text=Đã tách lại');
+  const after = JSON.parse(readFileSync(path.join(epubDir, 'annotations.json'), 'utf8'));
+  assert.deepEqual(after.deleted, ann.deleted, 'deletion kept after re-parse');
+  assert.equal(after.notes[0].text, ann.notes[0].text, 'own paragraph kept after re-parse');
+  assert.ok(readdirSync(epubDir).includes('book.prev.json'), 'previous parse backed up');
+
   if (shot) await page.screenshot({ path: shot });
   console.log('Smoke test passed. Data folder:', dataDir);
 } finally {
