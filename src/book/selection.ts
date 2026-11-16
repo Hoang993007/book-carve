@@ -1,45 +1,93 @@
-import type { TextRange } from '../lib/types';
+import type { Chapter, TextRange } from '../lib/types';
 
 /**
- * Maps the current browser selection inside `root` to a chapter character range.
- * Book text lives in spans carrying `data-s` (their start offset); anything else
- * (notes, collapsed markers) is resolved to the nearest book span.
+ * Book text lives in spans carrying `data-s` (start offset inside the chapter), each
+ * inside a section carrying `data-chapter`. These helpers map browser selections and
+ * pointer positions back to chapter offsets.
  */
-export function selectionRange(root: HTMLElement): TextRange | null {
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
-  const r = sel.getRangeAt(0);
-  if (!root.contains(r.commonAncestorContainer)) return null;
-  const a = boundary(root, r.startContainer, r.startOffset);
-  const b = boundary(root, r.endContainer, r.endOffset);
-  return a !== null && b !== null && b > a ? [a, b] : null;
+export interface ChapterRange {
+  chapterId: string;
+  range: TextRange;
 }
 
-function boundary(root: HTMLElement, node: Node, offset: number): number | null {
+interface Point {
+  chapterId: string;
+  offset: number;
+}
+
+const chapterOf = (el: Element) => el.closest<HTMLElement>('[data-chapter]')?.dataset.chapter ?? null;
+
+function pointOf(root: HTMLElement, node: Node, offset: number): Point | null {
   if (node.nodeType === Node.TEXT_NODE) {
     const span = node.parentElement?.closest<HTMLElement>('[data-s]');
-    if (span && root.contains(span)) return Number(span.dataset.s) + Math.min(offset, span.textContent?.length ?? 0);
+    const chapterId = span && root.contains(span) ? chapterOf(span) : null;
+    if (span && chapterId) return { chapterId, offset: Number(span.dataset.s) + Math.min(offset, span.textContent?.length ?? 0) };
   }
-  const point = document.createRange();
-  point.setStart(node, offset);
-  point.collapse(true);
-  let lastEnd: number | null = null;
+  const probe = document.createRange();
+  probe.setStart(node, offset);
+  probe.collapse(true);
+  let last: Point | null = null;
   for (const span of Array.from(root.querySelectorAll<HTMLElement>('[data-s]'))) {
-    // comparePoint >= 0: the span starts at or after the selection boundary.
-    if (point.comparePoint(span, 0) >= 0) return Number(span.dataset.s);
-    lastEnd = Number(span.dataset.s) + (span.textContent?.length ?? 0);
+    const chapterId = chapterOf(span);
+    if (!chapterId) continue;
+    // comparePoint >= 0: the span starts at or after the boundary.
+    if (probe.comparePoint(span, 0) >= 0) return { chapterId, offset: Number(span.dataset.s) };
+    last = { chapterId, offset: Number(span.dataset.s) + (span.textContent?.length ?? 0) };
   }
-  return lastEnd;
+  return last;
 }
 
-/** The block a right-click belongs to: the one under the pointer, else the last one above it. */
-export function blockAt(root: HTMLElement, target: EventTarget | null, clientY: number): number {
-  const direct = (target as Element | null)?.closest?.<HTMLElement>('[data-block]');
-  if (direct && root.contains(direct)) return Number(direct.dataset.block);
-  let found = -1;
+/** The current selection as one range per chapter it covers. Chapters not on screen are skipped. */
+export function selectionRanges(root: HTMLElement, chapters: Chapter[]): ChapterRange[] {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return [];
+  const r = sel.getRangeAt(0);
+  if (!root.contains(r.commonAncestorContainer)) return [];
+  const a = pointOf(root, r.startContainer, r.startOffset);
+  const b = pointOf(root, r.endContainer, r.endOffset);
+  if (!a || !b) return [];
+  const ia = chapters.findIndex((c) => c.id === a.chapterId);
+  const ib = chapters.findIndex((c) => c.id === b.chapterId);
+  if (ia < 0 || ib < ia) return [];
+
+  const out: ChapterRange[] = [];
+  for (let i = ia; i <= ib; i++) {
+    const ch = chapters[i];
+    if (!root.querySelector(`[data-chapter="${ch.id}"] [data-s]`)) continue;
+    const start = i === ia ? a.offset : 0;
+    const end = i === ib ? b.offset : ch.length;
+    if (end > start) out.push({ chapterId: ch.id, range: [start, end] });
+  }
+  return out;
+}
+
+export interface BlockRef {
+  chapterId: string;
+  block: number;
+}
+
+function blockRefOf(el: Element | null | undefined): BlockRef | null {
+  const block = el?.closest<HTMLElement>('[data-block]');
+  const chapterId = block ? chapterOf(block) : null;
+  return block && chapterId ? { chapterId, block: Number(block.dataset.block) } : null;
+}
+
+/** The block under the pointer, else the last block above it. */
+export function blockAtPointer(root: HTMLElement, target: EventTarget | null, clientY: number): BlockRef | null {
+  const direct = blockRefOf(target as Element | null);
+  if (direct) return direct;
+  let found: BlockRef | null = null;
   for (const el of Array.from(root.querySelectorAll<HTMLElement>('[data-block]'))) {
-    if (el.getBoundingClientRect().top <= clientY) found = Number(el.dataset.block);
-    else break;
+    if (el.getBoundingClientRect().top > clientY) break;
+    found = blockRefOf(el);
   }
   return found;
+}
+
+/** The block where the selection (or caret) ends. */
+export function blockAtSelection(root: HTMLElement): BlockRef | null {
+  const sel = window.getSelection();
+  const node = sel?.focusNode;
+  if (!node || !root.contains(node)) return null;
+  return blockRefOf(node.nodeType === Node.TEXT_NODE ? node.parentElement : (node as Element));
 }

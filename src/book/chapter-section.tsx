@@ -1,0 +1,55 @@
+import { memo } from 'react';
+import { foldForSearch } from '../lib/taken';
+import type { Chapter, Note, TextRange } from '../lib/types';
+import { ChapterText, type NoteHandlers, type ViewMode } from './chapter-text';
+
+interface Props extends NoteHandlers {
+  chapter: Chapter;
+  index: number;
+  /** Unread, untouched chapters stay folded to one line. */
+  open: boolean;
+  ranges: TextRange[];
+  notes: Note[];
+  mode: ViewMode;
+  expanded: ReadonlySet<number>;
+  onToggleExpand: (chapterId: string, rangeStart: number) => void;
+  onOpen: (index: number) => void;
+}
+
+const EMPTY: TextRange[] = [];
+
+/** Real pages for PDF; about 1500 characters a page for EPUB. */
+function pageCount(chapter: Chapter): number {
+  const first = chapter.blocks[0]?.page;
+  const last = chapter.blocks[chapter.blocks.length - 1]?.page;
+  if (first && last) return last - first + 1;
+  return Math.max(1, Math.round(chapter.length / 1500));
+}
+
+/** One chapter of the continuous document. Memoized: typing in one chapter leaves the rest alone. */
+export const ChapterSection = memo(function ChapterSection(props: Props) {
+  const { chapter, index, open } = props;
+  const titleInText = chapter.blocks[0]?.kind === 'h' && foldForSearch(chapter.blocks[0].text) === foldForSearch(chapter.title);
+  return (
+    <section className={`chapter${open ? '' : ' folded'}`} data-chapter={chapter.id} id={`chapter-${index}`}>
+      {(!open || !titleInText) && <h2 className="chapter-title">{chapter.title}</h2>}
+      {open ? (
+        <ChapterText
+          chapter={chapter}
+          ranges={props.ranges ?? EMPTY}
+          notes={props.notes}
+          mode={props.mode}
+          expanded={props.expanded}
+          onToggleExpand={(start) => props.onToggleExpand(chapter.id, start)}
+          editingNote={props.editingNote}
+          onEditNote={props.onEditNote}
+          onNoteChange={props.onNoteChange}
+        />
+      ) : (
+        <button className="unread" onClick={() => props.onOpen(index)}>
+          Chưa đọc · {pageCount(chapter)} trang · Đọc chương này
+        </button>
+      )}
+    </section>
+  );
+});

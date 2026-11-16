@@ -55,6 +55,7 @@ export interface Annotations {
   notes: Note[];
   progress: Record<string, ChapterProgress>;
   lastChapter: number;
+  lastOpenedAt?: number;
 }
 
 export const emptyAnnotations = (bookId: string): Annotations => ({

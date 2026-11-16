@@ -6,23 +6,26 @@ import { NoteBlock } from './note-block';
 
 export type ViewMode = 'compact' | 'original';
 
-interface Props {
+export interface NoteHandlers {
+  editingNote: string | null;
+  onEditNote: (id: string | null) => void;
+  onNoteChange: (id: string, text: string) => void;
+}
+
+interface Props extends NoteHandlers {
   chapter: Chapter;
   ranges: TextRange[];
   notes: Note[];
   mode: ViewMode;
-  expanded: Set<number>;
+  /** Deleted ranges opened in place, keyed by their start offset. */
+  expanded: ReadonlySet<number>;
   onToggleExpand: (rangeStart: number) => void;
-  editingNote: string | null;
-  onEditNote: (id: string | null) => void;
-  onNoteChange: (id: string, text: string) => void;
 }
 
 /** Renders a chapter with deletions applied and the reader's paragraphs in place. */
 export function ChapterText(props: Props) {
   const { chapter, ranges, notes, mode } = props;
   const notesAfter = (i: number) => notes.filter((n) => n.afterBlock === i).sort((a, b) => a.createdAt - b.createdAt);
-
   const renderNotes = (i: number) =>
     notesAfter(i).map((n) => (
       <NoteBlock
@@ -36,12 +39,12 @@ export function ChapterText(props: Props) {
     ));
 
   return (
-    <article className={`chapter-text ${mode}`}>
+    <div className={`chapter-text ${mode}`}>
       {renderNotes(-1)}
       {chapter.blocks.map((block, i) => {
         const segments = segmentsOf(ranges, block.start, blockEnd(block));
         const pieces = segments.map((seg) => renderSegment(block, seg, props)).filter(Boolean);
-        const Tag = block.kind === 'h' ? 'h2' : 'p';
+        const Tag = block.kind === 'h' ? 'h3' : 'p';
         return (
           <Fragment key={i}>
             {pieces.length > 0 && (
@@ -53,31 +56,39 @@ export function ChapterText(props: Props) {
           </Fragment>
         );
       })}
-    </article>
+    </div>
   );
+}
+
+/** "⋯ 3 đoạn đã xóa" when whole paragraphs are gone, a bare "⋯" for cuts inside one. */
+function markerLabel(chapter: Chapter, ranges: TextRange[], rangeStart: number): string {
+  const range = ranges.find(([a]) => a === rangeStart);
+  if (!range) return '⋯';
+  const touched = chapter.blocks.filter((b) => b.start < range[1] && blockEnd(b) > range[0]);
+  const whole = touched.some((b) => b.start >= range[0] && blockEnd(b) <= range[1]);
+  return whole ? `⋯ ${touched.length} đoạn đã xóa` : '⋯';
 }
 
 function renderSegment(block: Block, seg: Segment, props: Props) {
   const text = block.text.slice(seg.start - block.start, seg.end - block.start);
   if (!seg.deleted) return <span key={seg.start} data-s={seg.start}>{text}</span>;
-
-  const rangeStart = seg.rangeStart ?? seg.start;
-  const isFirstPiece = seg.start === rangeStart;
   if (props.mode === 'original') return <span key={seg.start} data-s={seg.start} className="cut">{text}</span>;
 
+  const rangeStart = seg.rangeStart ?? seg.start;
   const open = props.expanded.has(rangeStart);
-  const marker = isFirstPiece ? (
-    <button
-      key={`m${seg.start}`}
-      className={`cut-marker${open ? ' open' : ''}`}
-      contentEditable={false}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={() => props.onToggleExpand(rangeStart)}
-      title={open ? 'Thu lại' : 'Hiện phần đã xóa'}
-    >
-      {open ? '⋯ thu lại' : '⋯'}
-    </button>
-  ) : null;
+  const marker =
+    seg.start === rangeStart ? (
+      <button
+        key={`m${seg.start}`}
+        className={`cut-marker${open ? ' open' : ''}`}
+        contentEditable={false}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => props.onToggleExpand(rangeStart)}
+        title={open ? 'Thu lại' : 'Hiện phần đã xóa'}
+      >
+        {open ? 'thu lại' : markerLabel(props.chapter, props.ranges, rangeStart)}
+      </button>
+    ) : null;
   if (!open) return marker;
   return (
     <Fragment key={seg.start}>
