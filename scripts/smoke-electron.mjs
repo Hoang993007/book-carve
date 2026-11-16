@@ -2,7 +2,7 @@
 // Usage: pnpm build && pnpm samples && pnpm smoke [screenshot-dir]
 // Set SMOKE_EXE to a packaged "Book Carve.exe" to test the installed build instead.
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { _electron } from 'playwright-core';
@@ -203,6 +203,19 @@ try {
   const after2 = JSON.parse(readFileSync(path.join(workDir, 'work.json'), 'utf8'));
   assert.deepEqual(after2.parts.map((p) => p.title), ['Chương 2'], 'chapter moved and removed');
   assert.equal(readdirSync(path.join(workDir, 'removed')).length, 1, 'removed chapter kept aside');
+
+  // Files changed outside the app show up after "Tải lại", in the list and in an open work.
+  writeFileSync(path.join(workDir, 'work.json'), JSON.stringify({ ...after2, title: 'Đổi từ ngoài app' }, null, 2));
+  await page.click('.library-head .reload-btn');
+  await page.waitForSelector('.work-row:has-text("Đổi từ ngoài app")');
+  await page.click('.work-row .book-name');
+  await page.waitForSelector('.manuscript');
+  writeFileSync(path.join(workDir, 'parts', `${after2.parts[0].id}.md`), 'Sửa từ ngoài app.');
+  await page.click('.topbar .reload-btn');
+  await page.waitForFunction(() => document.querySelector('.manuscript')?.value === 'Sửa từ ngoài app.');
+  await page.click('.icon-btn[aria-label="Về danh sách tác phẩm"]');
+  await page.waitForSelector('.work-row');
+  assert.equal(readFileSync(path.join(workDir, 'parts', `${after2.parts[0].id}.md`), 'utf8'), 'Sửa từ ngoài app.', 'outside edit not overwritten');
   await page.click('.space-tabs button:has-text("Thư viện")');
 
   // Floating button: closing the reader only hides it; a click on the button brings it back.
