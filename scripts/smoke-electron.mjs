@@ -78,11 +78,15 @@ try {
   await shot(page, '4-search');
   await page.keyboard.press('Escape');
 
-  // Contents overlay.
+  // Contents sidebar: shown by default, current chapter marked, [ folds it to a rail and back.
+  await page.waitForSelector('.toc-side:not(.collapsed) .toc-item.current');
   await page.keyboard.press('[');
-  await page.waitForSelector('.toc-overlay');
-  await shot(page, '5-toc');
-  await page.keyboard.press('Escape');
+  await page.waitForSelector('.toc-side.collapsed');
+  await shot(page, '5-toc-collapsed');
+  await page.click('.toc-side.collapsed .icon-btn');
+  await page.waitForSelector('.toc-side:not(.collapsed)');
+  await page.click('.toc-item:has-text("Lời mở đầu")');
+  await page.waitForSelector('.toc-item.current:has-text("Lời mở đầu")');
 
   // Re-parse from the ⋯ menu, with confirmation: annotations survive, the old parse is kept.
   await page.click('.topbar .more .icon-btn');
