@@ -11,6 +11,28 @@ you skim, cut the packaging away like lines in your own draft, and write how eac
 applies to your work, right where it appears. The original is never touched: one
 shortcut shows everything again, struck through.
 
+## A story
+
+You buy a 300-page book on focus. Chapter one opens with the author's childhood, a
+long anecdote about a friend, and a promise that chapter three will explain the
+science. Somewhere on page 41 there is one sentence that actually changes how you
+work: *start with two minutes*. You highlight it, maybe. You finish the book out of
+duty, or more likely you don't.
+
+Three months later, in the middle of a work day, you remember "there was something
+about starting small..." Where? The highlights app shows a list of sentences torn
+from their context. Rereading the book is out of the question. The idea is lost
+exactly when you need it.
+
+With Book Carve, you skim chapter one and press Backspace through the childhood
+story and the anecdote. The sentence on page 41 stays, and right under it you type
+*"Use this: open the journal for two minutes before email."* Chapter four looks like
+filler, so you never open it; it stays folded as one line.
+
+Three months later you open the book and it is one screen long: the few sentences
+you kept, in the author's order, with your own words under each. Or you press
+Ctrl+F, type "two minutes", and land on it in a second. The book became your tool.
+
 Read the full idea and the research behind it in [docs/idea.md](docs/idea.md).
 
 ## What it does
