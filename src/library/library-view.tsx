@@ -4,8 +4,10 @@ import { listAnnotations, listBooks, saveBook, storageLocation } from '../lib/db
 import { foldForSearch } from '../lib/taken';
 import type { Annotations, BookMeta } from '../lib/types';
 import { useConfirm } from '../ui/confirm';
+import { ReloadButton } from '../ui/reload-button';
 import { SpaceTabs, type Space } from '../ui/space-tabs';
 import { useToast } from '../ui/toast';
+import { useWindowFocus } from '../ui/use-window-focus';
 import { BookRow } from './book-row';
 
 interface Props {
@@ -43,6 +45,8 @@ export function LibraryView({ onOpen, onSwitch }: Props) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [refresh]);
+
+  useWindowFocus(() => void refresh());
 
   const addFiles = async (files: File[]) => {
     const failures: string[] = [];
@@ -88,6 +92,7 @@ export function LibraryView({ onOpen, onSwitch }: Props) {
       <header className="library-head">
         <SpaceTabs space="books" onSwitch={onSwitch} />
         <span className="muted">{books.length} sách</span>
+        <ReloadButton onReload={refresh} />
         <span className="spacer" />
         <input ref={filterInput} type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Lọc theo tên  (Ctrl+F)" aria-label="Lọc sách" />
         <label className="button primary">

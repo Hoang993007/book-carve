@@ -18,6 +18,12 @@ export interface WorkEditor {
   /** Remembers where the caret is, for "continue where you stopped". */
   setCaret: (caret: number) => void;
   flush: () => Promise<void>;
+  /**
+   * Reads the work and the open chapter again from disk, for changes made outside the app.
+   * Pending typing is saved first, so it is never lost. With `onlyIfClean`, does nothing while
+   * there is unsaved typing (used when the window regains focus).
+   */
+  reload: (onlyIfClean?: boolean) => Promise<void>;
 }
 
 /**
@@ -33,15 +39,16 @@ export function useWorkEditor(initial: Work): WorkEditor {
 
   const workRef = useRef(work);
   const partRef = useRef(part);
-  const dirty = useRef<{ text: { part: PartRef; value: string } | null; work: boolean }>({ text: null, work: false });
+  // Typing and work edits are "dirty"; a moved caret alone is not, so it never blocks a reload.
+  const dirty = useRef<{ text: { part: PartRef; value: string } | null; work: boolean; caret: boolean }>({ text: null, work: false, caret: false });
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flush = useCallback(async () => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
-    const { text: t, work: w } = dirty.current;
-    dirty.current = { text: null, work: false };
-    if (!t && !w) return;
+    const { text: t, work: w, caret: c } = dirty.current;
+    dirty.current = { text: null, work: false, caret: false };
+    if (!t && !w && !c) return;
     const store = await writing;
     if (t) await store.saveText(workRef.current.id, t.part, t.value);
     await store.saveWork(workRef.current);
@@ -84,7 +91,7 @@ export function useWorkEditor(initial: Work): WorkEditor {
     if (last?.part === partRef.current && last.caret === caret) return;
     workRef.current = { ...workRef.current, last: { part: partRef.current, caret } };
     setWork(workRef.current);
-    dirty.current.work = true;
+    dirty.current.caret = true;
   }, []);
 
   const openPart = useCallback(
@@ -94,12 +101,33 @@ export function useWorkEditor(initial: Work): WorkEditor {
       const keep = workRef.current.last?.part === next ? workRef.current.last.caret : 0;
       workRef.current = { ...workRef.current, last: { part: next, caret: keep } };
       setWork(workRef.current);
-      dirty.current.work = true;
+      dirty.current.caret = true;
       partRef.current = next;
       setPart(next);
       setTextState(null);
     },
     [flush, setCaret],
+  );
+
+  const reload = useCallback(
+    async (onlyIfClean = false) => {
+      const busy = Boolean(dirty.current.text || dirty.current.work);
+      if (busy && onlyIfClean) return;
+      if (busy) await flush();
+      const store = await writing;
+      const fresh = await store.getWork(workRef.current.id);
+      if (!fresh) return;
+      const keep = partRef.current === NOTEBOOK || fresh.parts.some((x) => x.id === partRef.current);
+      const p = keep ? partRef.current : fresh.parts[0]?.id ?? NOTEBOOK;
+      const t = await store.getText(fresh.id, p);
+      // Keep where the caret is now; it is saved with the fresh work on the next save.
+      workRef.current = { ...fresh, last: workRef.current.last };
+      setWork(workRef.current);
+      partRef.current = p;
+      setPart(p);
+      setTextState(t);
+    },
+    [flush],
   );
 
   // Load the open chapter's text.
@@ -114,5 +142,5 @@ export function useWorkEditor(initial: Work): WorkEditor {
   // Leaving the work saves what is pending.
   useEffect(() => () => void flush(), [flush]);
 
-  return { work, part, text, saving, setText, updateWork, openPart, setCaret, flush };
+  return { work, part, text, saving, setText, updateWork, openPart, setCaret, flush, reload };
 }

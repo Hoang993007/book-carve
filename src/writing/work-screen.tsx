@@ -2,9 +2,11 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type Keyboar
 import { useConfirm } from '../ui/confirm';
 import { IconBack } from '../ui/icons';
 import { MoreMenu } from '../ui/menu';
+import { ReloadButton } from '../ui/reload-button';
 import { useToast } from '../ui/toast';
 import { PartsSidebar } from './parts-sidebar';
 import { NOTEBOOK, STATUS_LABEL, type Work, type WorkStatus } from './types';
+import { useOutsideChanges } from './use-outside-changes';
 import { useWorkEditor } from './use-work-editor';
 import { workActions } from './work-actions';
 import { movePart, newPart, nextPartTitle, totalWords } from './work-ops';
@@ -77,6 +79,8 @@ export function WorkScreen({ initial, onBack }: { initial: Work; onBack: () => v
     return () => window.removeEventListener('keydown', onKey);
   }, [ed, fail]);
 
+  const reload = useOutsideChanges(ed, area, caret, fail);
+
   // Enter in a title moves on to the text (without carrying the line break over).
   const toText = (e: ReactKeyboardEvent) => {
     if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
@@ -125,6 +129,7 @@ export function WorkScreen({ initial, onBack }: { initial: Work; onBack: () => v
           onKeyDown={toText}
         />
         <span className="spacer" />
+        <ReloadButton onReload={() => reload().catch(fail)} />
         <select
           className="status-select"
           value={work.status}

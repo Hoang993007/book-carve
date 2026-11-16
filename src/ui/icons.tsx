@@ -7,6 +7,7 @@ export const IconClose = () => <svg {...base}><path d="M4 4l8 8M12 4l-8 8" /></s
 export const IconBack = () => <svg {...base}><path d="M10 3.5L5.5 8l4.5 4.5" /></svg>;
 export const IconCollapse = () => <svg {...base}><path d="M8.5 4L4.5 8l4 4M12.5 4l-4 4 4 4" /></svg>;
 export const IconExpand = () => <svg {...base}><path d="M7.5 4l4 4-4 4M3.5 4l4 4-4 4" /></svg>;
+export const IconReload = () => <svg {...base}><path d="M13 8a5 5 0 1 1-1.5-3.6M13 2.5v3h-3" /></svg>;
 export const IconMore = () => (
   <svg {...base} fill="currentColor" stroke="none">
     <circle cx="3.5" cy="8" r="1.3" />

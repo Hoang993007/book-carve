@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { storageLocation } from '../lib/db';
 import { foldForSearch } from '../lib/taken';
 import { useConfirm } from '../ui/confirm';
+import { ReloadButton } from '../ui/reload-button';
 import { SpaceTabs, type Space } from '../ui/space-tabs';
 import { useToast } from '../ui/toast';
+import { useWindowFocus } from '../ui/use-window-focus';
 import { IdeasPanel } from './ideas-panel';
 import { PickTarget } from './pick-target';
 import type { Idea, Work } from './types';
@@ -48,6 +50,9 @@ export function WritingView({ onOpen, onSwitch }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [refresh, fail]);
 
+  // Files may change outside the app (another editor, an assistant): read them again on return.
+  useWindowFocus(() => void refresh().catch(fail));
+
   const saveIdeas = async (next: Idea[]) => {
     setIdeas(next);
     await (await writing).saveIdeas(next);
@@ -90,6 +95,7 @@ export function WritingView({ onOpen, onSwitch }: Props) {
       <header className="library-head">
         <SpaceTabs space="writing" onSwitch={onSwitch} />
         <span className="muted">{works?.length ?? 0} tác phẩm</span>
+        <ReloadButton onReload={() => refresh().catch(fail)} />
         <span className="spacer" />
         <input ref={filterInput} type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Lọc theo tên  (Ctrl+F)" aria-label="Lọc tác phẩm" />
         <button className="primary" onClick={() => void create().catch(fail)}>
