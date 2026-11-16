@@ -35,8 +35,13 @@ export type TextRange = [number, number];
 export interface Note {
   id: string;
   chapterId: string;
-  /** The note sits right after this block. -1 puts it before the first block. */
+  /**
+   * Block notes sit right after this block (-1: before the first block).
+   * Inline notes (with `at`) sit inside this block.
+   */
   afterBlock: number;
+  /** Inline note: chapter offset where it is inserted into the book text. */
+  at?: number;
   text: string;
   createdAt: number;
 }

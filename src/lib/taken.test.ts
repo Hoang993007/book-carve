@@ -39,6 +39,16 @@ describe('takenChapters', () => {
   });
 });
 
+describe('inline own text in the export', () => {
+  it('sets inline text into the paragraph and marks cuts', () => {
+    const a = annotated();
+    const at = ch0.blocks[1].start + 'Ý chính'.length;
+    a.notes.push({ id: 'n2', chapterId: 'c0', afterBlock: 1, at, text: 'của sách', createdAt: 2 });
+    a.deleted.c0 = [[0, ch0.blocks[1].start], [at + 1, at + 3]]; // hides "ở "
+    expect(takenChapters(book, a)[0].items[0]).toMatchObject({ kind: 'kept', text: 'Ý chính *(của sách)* … đây.' });
+  });
+});
+
 describe('foldForSearch', () => {
   it('ignores case and Vietnamese diacritics while keeping length', () => {
     const s = 'Đường Thói QUEN';

@@ -21,6 +21,18 @@ const newBook = book([
 ]);
 
 describe('remapAnnotations', () => {
+  it('moves inline own text to the same spot in the new parse', () => {
+    const text = oldBook.chapters[0].blocks.map((b) => b.text).join('');
+    const at = text.indexOf('Carl Jung');
+    const ann = emptyAnnotations('b');
+    ann.notes.push({ id: 'i1', chapterId: 'c0', afterBlock: 1, at, text: 'nhà tâm lý', createdAt: 1 });
+    const { ann: out } = remapAnnotations(oldBook, newBook, ann);
+    const n = out.notes[0];
+    expect(n).toMatchObject({ chapterId: 'c1', afterBlock: 0 });
+    // Whitespace is ignored when re-finding, so the spot may land just before the space.
+    expect(slice(newBook.chapters[1], [n.at!, n.at! + 10]).trim()).toBe('Carl Jung');
+  });
+
   it('re-finds deletions, notes and progress in a differently split parse', () => {
     const old = oldBook.chapters[0];
     const text = old.blocks.map((b) => b.text).join('');

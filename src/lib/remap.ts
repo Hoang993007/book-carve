@@ -134,11 +134,13 @@ export function remapAnnotations(oldBook: Book, newBook: Book, ann: Annotations)
   const notes = [...ann.notes].sort((x, y) => notePos(x) - notePos(y));
   function notePos(n: Note): number {
     const i = oldIndex.get(n.chapterId) ?? 0;
+    if (n.at !== undefined) return from.bases[i] + n.at;
     const block = oldBook.chapters[i]?.blocks[n.afterBlock];
     return from.bases[i] + (block ? blockEnd(block) : 0);
   }
   for (const n of notes) {
-    const before = n.afterBlock >= 0;
+    // Inline text and paragraphs after a block are found by the text before them.
+    const before = n.at !== undefined || n.afterBlock >= 0;
     let pos = notePoints.map(notePos(n), before ? 'before' : 'after');
     if (pos === null) {
       report.notesApprox++;
@@ -147,6 +149,10 @@ export function remapAnnotations(oldBook: Book, newBook: Book, ann: Annotations)
     const ci = chapterAt(to, pos, before);
     const ch = newBook.chapters[ci];
     const local = pos - to.bases[ci];
+    if (n.at !== undefined) {
+      out.notes.push({ ...n, chapterId: ch.id, afterBlock: blockAt(ch, local), at: local });
+      continue;
+    }
     const afterBlock = before ? blockAt(ch, local) : blockAt(ch, local + 1) - 1;
     out.notes.push({ ...n, chapterId: ch.id, afterBlock });
   }

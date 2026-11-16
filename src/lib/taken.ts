@@ -1,6 +1,6 @@
 import { blockEnd } from './chapter';
-import { segmentsOf } from './ranges';
-import type { Annotations, Book } from './types';
+import { segmentsOf, type Segment } from './ranges';
+import type { Annotations, Block, Book, Note } from './types';
 
 export type TakenItem =
   | { kind: 'kept'; block: number; text: string; heading: boolean }
@@ -28,17 +28,17 @@ export function takenChapters(book: Book, ann: Annotations): TakenChapter[] {
 
     const items: TakenItem[] = [];
     const pushNotes = (after: number) => {
-      for (const n of notes) if (n.afterBlock === after) items.push({ kind: 'note', block: Math.max(after, 0), text: n.text, noteId: n.id });
+      for (const n of notes) {
+        if (n.at === undefined && n.afterBlock === after) items.push({ kind: 'note', block: Math.max(after, 0), text: n.text, noteId: n.id });
+      }
     };
     pushNotes(-1);
     chapter.blocks.forEach((b, i) => {
-      if (i <= lastRead) {
-        const kept = segmentsOf(ranges, b.start, blockEnd(b))
-          .filter((s) => !s.deleted)
-          .map((s) => b.text.slice(s.start - b.start, s.end - b.start).trim())
-          .filter(Boolean);
+      const inline = notes.filter((n) => n.at !== undefined && n.afterBlock === i).sort((x, y) => x.at! - y.at!);
+      if (i <= lastRead || inline.length) {
+        const text = keptWithInline(b, segmentsOf(ranges, b.start, blockEnd(b)), inline);
         const repeatsTitle = b.kind === 'h' && b.text === chapter.title;
-        if (kept.length && !repeatsTitle) items.push({ kind: 'kept', block: i, text: kept.join(' … '), heading: b.kind === 'h' });
+        if (text && !repeatsTitle) items.push({ kind: 'kept', block: i, text, heading: b.kind === 'h' });
       }
       pushNotes(i);
     });
@@ -47,6 +47,25 @@ export function takenChapters(book: Book, ann: Annotations): TakenChapter[] {
     if (hasContent) out.push({ chapterIndex, title: chapter.title, items });
   });
   return out;
+}
+
+/** A paragraph's kept text with your inline text set in as *(…)* and cuts shown as "…". */
+function keptWithInline(b: Block, segments: Segment[], inline: Note[]): string {
+  const parts: string[] = [];
+  let next = 0;
+  let cut = false;
+  for (const seg of segments) {
+    while (next < inline.length && inline[next].at! <= seg.start) parts.push(`*(${inline[next++].text.trim()})*`);
+    if (seg.deleted) {
+      cut = parts.length > 0;
+      continue;
+    }
+    if (cut) parts.push('…');
+    cut = false;
+    parts.push(b.text.slice(seg.start - b.start, seg.end - b.start).trim());
+  }
+  while (next < inline.length) parts.push(`*(${inline[next++].text.trim()})*`);
+  return parts.filter(Boolean).join(' ');
 }
 
 /** Lowercase, no Vietnamese diacritics, same length as the NFC input so match indexes line up. */
