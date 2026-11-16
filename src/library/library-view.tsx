@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { importBook } from '../import/import-book';
 import { deleteBook, isDesktopApp, listAnnotations, listBooks, saveBook, storageLocation } from '../lib/db';
 import { bookSummary } from '../lib/progress';
+import { reparseBook } from './reparse-book';
 import type { Annotations, BookMeta } from '../lib/types';
 
 interface Props {
@@ -13,6 +14,7 @@ export function LibraryView({ onOpen }: Props) {
   const [anns, setAnns] = useState<Map<string, Annotations>>(new Map());
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [location, setLocation] = useState('');
   const input = useRef<HTMLInputElement>(null);
 
@@ -49,6 +51,19 @@ export function LibraryView({ onOpen }: Props) {
     await refresh();
   };
 
+  const reparse = async (b: BookMeta) => {
+    setError(null);
+    setNotice(null);
+    setBusy(`Đang tách lại ${b.title}…`);
+    try {
+      setNotice(await reparseBook(b.id));
+    } catch (e) {
+      setError(`${b.title}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    setBusy(null);
+    await refresh();
+  };
+
   const remove = async (b: BookMeta) => {
     const consequence = isDesktopApp
       ? 'Thư mục của sách (kèm phần đã xóa và đoạn bạn viết) sẽ được chuyển vào Thùng rác.'
@@ -68,6 +83,7 @@ export function LibraryView({ onOpen }: Props) {
           Thêm sách (EPUB, PDF)
         </label>
         {busy && <p className="status">{busy}</p>}
+        {notice && <p className="status">{notice}</p>}
         {error && <p className="error">{error}</p>}
       </header>
       {!books.length && !busy && <p className="empty">Chưa có sách nào. Thêm một file EPUB hoặc PDF có chữ để bắt đầu.</p>}
@@ -80,6 +96,17 @@ export function LibraryView({ onOpen }: Props) {
                 {b.format.toUpperCase()} · {b.chapterCount} chương · {bookSummary(b, anns.get(b.id))}
               </span>
             </button>
+            {isDesktopApp && (
+              <button
+                className="ghost"
+                disabled={busy !== null}
+                onClick={() => void reparse(b)}
+                title="Tách chữ lại từ file gốc đã lưu, giữ phần đã xóa và đoạn bạn viết"
+                aria-label={`Tách lại ${b.title}`}
+              >
+                Tách lại
+              </button>
+            )}
             <button className="ghost danger" onClick={() => void remove(b)} aria-label={`Xóa ${b.title}`}>Xóa</button>
           </li>
         ))}
