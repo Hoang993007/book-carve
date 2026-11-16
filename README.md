@@ -26,16 +26,25 @@ stays, since it gives the book its structure, and folds to a thin rail.
   the chapter's end has been on screen). "Tiếp tục" jumps back to where you stopped.
 - Export "my version" of a book to Markdown.
 
+The text behaves like a document you edit: click to place the caret, type, delete.
+Book text is never changed; edits on it are recorded as hidden ranges and your own
+text, so everything can be undone and the original is one shortcut away.
+
 | Key | Action |
 |---|---|
-| Select + Backspace / Delete | Delete the selection (across paragraphs and chapters) |
-| Enter | Insert your own paragraph after the paragraph the caret is in |
-| Right-click | Restore struck text, delete, or insert |
-| Ctrl+Z / Ctrl+Y | Undo / redo deletions and inserted paragraphs |
-| O | Compact ↔ original (deleted text struck through) |
-| [ | Collapse / show the contents sidebar |
-| Ctrl+F | Search kept text and your paragraphs (diacritics ignored) |
+| Backspace / Delete | Hide the character before / after the caret (selection: hide it all) |
+| Ctrl+Backspace / Ctrl+Delete | Hide a word |
+| Typing | Write your own text inline, right at the caret |
+| Enter | Start your own paragraph below the current one |
+| Right-click | Restore hidden text in a selection, delete your own text |
+| Ctrl+Z / Ctrl+Y | Undo / redo |
+| Ctrl+O | Compact ↔ original (hidden text struck through) |
+| Ctrl+B | Collapse / show the contents sidebar |
+| Ctrl+F | Search kept text and your own text (diacritics ignored) |
 | Esc | Close search |
+
+Short cuts simply vanish; cuts of 20 characters or more leave a "⋯" you can click to
+peek at them. Input methods (Vietnamese IME) work in book text and in your own text.
 
 Later: cross-book search over kept text and own paragraphs, second-brain sync, AI fluff hints.
 
