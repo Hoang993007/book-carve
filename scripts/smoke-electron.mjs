@@ -63,14 +63,30 @@ try {
   await page.keyboard.press('Control+Y');
   await page.waitForSelector('section[data-chapter="c1"] .cut-marker');
 
-  // Enter on a paragraph inserts an own paragraph after it.
-  await page.evaluate(() => {
-    const t = document.querySelector('section[data-chapter="c1"] [data-block="2"] [data-s]').firstChild;
-    getSelection().collapse(t, 3);
-  });
+  // Caret editing. Put the caret at the end of paragraph 2 and Backspace once: one character hides.
+  const caretIn = (block, at) =>
+    page.evaluate(
+      ([b, a]) => {
+        const spans = document.querySelectorAll(`section[data-chapter="c1"] [data-block="${b}"] [data-s]`);
+        const t = spans[spans.length - 1].firstChild;
+        getSelection().collapse(t, a === 'end' ? t.length : a);
+      },
+      [block, at],
+    );
+  await caretIn(2, 'end');
+  await page.keyboard.press('Backspace');
+  await page.waitForFunction(() => /thoảng$/.test(document.querySelector('section[data-chapter="c1"] [data-block="2"]').textContent.trim()));
+
+  // Typing in book text writes your own text inline, right at the caret.
+  await caretIn(3, 5);
+  await page.keyboard.type('ý hay');
+  await page.waitForSelector('section[data-chapter="c1"] [data-block="3"] .note-inline:has-text("ý hay")');
+
+  // Enter starts your own paragraph below; typing goes into it.
+  await caretIn(2, 3);
   await page.keyboard.press('Enter');
+  await page.waitForSelector('section[data-chapter="c1"] .note:not(.note-inline)');
   await page.keyboard.type('Ý của tôi: bắt đầu với hai phút.');
-  await page.keyboard.press('Escape');
   await page.waitForTimeout(800); // debounced save
   await shot(page, '3-carved');
 
@@ -79,9 +95,20 @@ try {
   const epubDir = books.map((id) => path.join(dataDir, 'books', id)).find((d) => readdirSync(d).includes('source.epub'));
   assert.ok(epubDir, 'original EPUB kept next to the parsed book');
   const ann = annotationsOf(epubDir);
-  assert.equal(ann.deleted.c1.length, 1, 'deletion saved');
-  assert.equal(ann.notes[0].text, 'Ý của tôi: bắt đầu với hai phút.', 'own paragraph saved');
-  assert.equal(ann.notes[0].afterBlock, 2, 'own paragraph sits after the paragraph Enter was pressed in');
+  assert.equal(ann.deleted.c1.length, 2, 'paragraph cut and one character cut saved');
+  const inline = ann.notes.find((n) => n.at !== undefined);
+  const para = ann.notes.find((n) => n.at === undefined);
+  assert.equal(inline?.text, 'ý hay', 'inline own text saved');
+  assert.equal(inline?.afterBlock, 3, 'inline text sits in the paragraph it was typed in');
+  assert.equal(para?.text, 'Ý của tôi: bắt đầu với hai phút.', 'own paragraph saved');
+  assert.equal(para?.afterBlock, 2, 'own paragraph sits after the paragraph Enter was pressed in');
+
+  // Ctrl+Z removes the paragraph you just wrote, Ctrl+Y brings it back.
+  await page.keyboard.press('Control+Z');
+  await page.waitForSelector('section[data-chapter="c1"] .note:not(.note-inline)', { state: 'detached' });
+  await page.keyboard.press('Control+Y');
+  await page.waitForSelector('section[data-chapter="c1"] .note:not(.note-inline)');
+  await page.waitForTimeout(800);
 
   // Ctrl+F finds the own paragraph without diacritics.
   await page.keyboard.press('Control+F');
@@ -90,9 +117,9 @@ try {
   await shot(page, '4-search');
   await page.keyboard.press('Escape');
 
-  // Contents sidebar: shown by default, current chapter marked, [ folds it to a rail and back.
+  // Contents sidebar: shown by default, current chapter marked, Ctrl+B folds it to a rail and back.
   await page.waitForSelector('.toc-side:not(.collapsed) .toc-item.current');
-  await page.keyboard.press('[');
+  await page.keyboard.press('Control+B');
   await page.waitForSelector('.toc-side.collapsed');
   await shot(page, '5-toc-collapsed');
   await page.click('.toc-side.collapsed .icon-btn');
@@ -110,7 +137,7 @@ try {
   await page.waitForSelector('.toast:has-text("Đã tách lại")', { timeout: 15000 });
   const after = annotationsOf(epubDir);
   assert.deepEqual(after.deleted, ann.deleted, 'deletion kept after re-parse');
-  assert.equal(after.notes[0].text, ann.notes[0].text, 'own paragraph kept after re-parse');
+  assert.deepEqual(after.notes.map((n) => n.text).sort(), ann.notes.map((n) => n.text).sort(), 'own text kept after re-parse');
   assert.ok(readdirSync(epubDir).includes('book.prev.json'), 'previous parse backed up');
 
   // Delete from the library menu goes through a confirm box; cancelling keeps the book.
