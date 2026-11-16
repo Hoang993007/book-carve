@@ -54,10 +54,17 @@ Read the full idea and the research behind it in [docs/idea.md](docs/idea.md).
 - **Always at hand.** A small floating button above all windows opens and hides the
   reader.
 - **Export** your carved version of a book to Markdown.
+- **Write your own work.** A second space, "Viết", for your own stories and essays:
+  works split into chapters (drag to reorder), a notebook per work for characters
+  and outlines, word counts, status (draft / writing / done), autosave, and it
+  reopens at the exact spot you stopped. A quick idea inbox catches loose thoughts;
+  move one into the end of any chapter when its place is clear.
 
 | Library | Original view (Ctrl+O) |
 |---|---|
 | ![Library](docs/images/library.png) | ![Original view with cut text struck through](docs/images/original.png) |
+
+![Writing a work: chapters on the side, the chapter as a plain page](docs/images/writing.png)
 
 Supports EPUB and PDFs with a text layer (scanned PDFs are not supported). The
 interface is in Vietnamese.
@@ -109,6 +116,11 @@ books/<id>/book.json          parsed text (never changed after import)
 books/<id>/annotations.json   cuts, your own text, progress
 books/<id>/source.epub|pdf    the original file
 books/<id>/book.prev.json     the previous parse, after a re-parse
+writing/works/<id>/work.json  title, status, chapter order
+writing/works/<id>/parts/     one Markdown file per chapter
+writing/works/<id>/notebook.md
+writing/works/<id>/removed/   chapters you removed, kept aside
+writing/ideas.json            the idea inbox
 ```
 
 To keep the library elsewhere (a synced folder, another drive), put

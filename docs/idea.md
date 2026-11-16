@@ -109,6 +109,15 @@ information:
 - **Plain files.** Your library is a folder of JSON files and the original books.
   Back it up, sync it, or read it with any tool.
 
+## From reading to writing
+
+What you take from books ends up in your own work. Book Carve has a second space,
+"Viết", for writing: stories, essays, a novel in chapters. It follows the same
+rules: one plain page per chapter, quiet by default, saved as you type, nothing
+ever lost (a removed chapter is moved aside, a deleted work goes to the Recycle
+Bin), and stored as Markdown files any editor can open. Loose ideas go into an
+inbox in a second and move into a chapter once their place is clear.
+
 ## Not yet
 
 Ideas for later: search across all books, sending kept passages to a personal
