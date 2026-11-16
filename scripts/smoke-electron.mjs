@@ -1,67 +1,110 @@
 // End-to-end check of the built desktop app against a throwaway data folder.
-// Usage: pnpm build && pnpm samples && pnpm smoke [screenshot.png]
+// Usage: pnpm build && pnpm samples && pnpm smoke [screenshot-dir]
 // Set SMOKE_EXE to a packaged "Book Carve.exe" to test the installed build instead.
 import assert from 'node:assert/strict';
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { _electron } from 'playwright-core';
 
 const dataDir = mkdtempSync(path.join(tmpdir(), 'book-carve-smoke-'));
-const shot = process.argv[2];
+const shots = process.argv[2];
+if (shots) mkdirSync(shots, { recursive: true });
 const env = { ...process.env, BOOK_CARVE_DATA: dataDir };
 const exe = process.env.SMOKE_EXE;
 const app = await _electron.launch(exe ? { executablePath: exe, args: [], env } : { args: ['.'], env });
+const shot = async (page, name) => shots && page.screenshot({ path: path.join(shots, `${name}.png`) });
+const annotationsOf = (dir) => JSON.parse(readFileSync(path.join(dir, 'annotations.json'), 'utf8'));
 
 try {
   const page = await app.firstWindow();
+  await page.setViewportSize({ width: 1280, height: 820 });
   await page.waitForSelector('.library');
 
   await page.setInputFiles('input[type=file]', ['samples/sample.epub', 'samples/sample.pdf']);
-  await page.waitForFunction(() => document.querySelectorAll('.book-card').length === 2, null, { timeout: 15000 });
-  assert.match(await page.textContent('.storage'), new RegExp(path.basename(dataDir)));
+  await page.waitForFunction(() => document.querySelectorAll('.book-row:not(.head)').length === 2, null, { timeout: 15000 });
+  assert.match(await page.textContent('.library-foot'), new RegExp(path.basename(dataDir)));
+  await shot(page, '1-library');
 
-  await page.click('.book-card:has-text("Thói quen")');
-  await page.click('.toc-item:has-text("Chương 1")');
-  await page.waitForSelector('.chapter-text [data-block="1"]');
+  // Open the EPUB: untouched chapters are folded; open chapter 1 from its folded line.
+  await page.click('.book-name:has-text("Thói quen")');
+  await page.waitForSelector('section.chapter.folded');
+  await shot(page, '2-folded');
+  await page.click('section:has-text("Chương 1") .unread');
+  await page.waitForSelector('section[data-chapter="c1"] [data-block="1"]');
 
-  // Select paragraph 1 and press Backspace.
-  await page.evaluate(() => {
-    const t = document.querySelector('.chapter-text [data-block="1"] [data-s]').firstChild;
-    const r = document.createRange();
-    r.setStart(t, 0);
-    r.setEnd(t, t.length);
-    getSelection().removeAllRanges();
-    getSelection().addRange(r);
-  });
+  // Select paragraph 1 and press Backspace; Ctrl+Z brings it back, Ctrl+Y removes it again.
+  const select = (block) =>
+    page.evaluate((b) => {
+      const t = document.querySelector(`section[data-chapter="c1"] [data-block="${b}"] [data-s]`).firstChild;
+      const r = document.createRange();
+      r.setStart(t, 0);
+      r.setEnd(t, t.length);
+      getSelection().removeAllRanges();
+      getSelection().addRange(r);
+    }, block);
+  await select(1);
   await page.keyboard.press('Backspace');
-  await page.waitForSelector('.cut-marker');
+  await page.waitForSelector('section[data-chapter="c1"] .cut-marker');
+  await page.keyboard.press('Control+Z');
+  await page.waitForSelector('section[data-chapter="c1"] .cut-marker', { state: 'detached' });
+  await page.keyboard.press('Control+Y');
+  await page.waitForSelector('section[data-chapter="c1"] .cut-marker');
 
-  // Right-click paragraph 2, insert an own paragraph.
-  await page.click('.chapter-text [data-block="2"]', { button: 'right' });
-  await page.click('.context-menu button:has-text("Chèn đoạn")');
+  // Enter on a paragraph inserts an own paragraph after it.
+  await page.evaluate(() => {
+    const t = document.querySelector('section[data-chapter="c1"] [data-block="2"] [data-s]').firstChild;
+    getSelection().collapse(t, 3);
+  });
+  await page.keyboard.press('Enter');
   await page.keyboard.type('Ý của tôi: bắt đầu với hai phút.');
   await page.keyboard.press('Escape');
   await page.waitForTimeout(800); // debounced save
+  await shot(page, '3-carved');
 
   const books = readdirSync(path.join(dataDir, 'books'));
   assert.equal(books.length, 2, 'one folder per book');
   const epubDir = books.map((id) => path.join(dataDir, 'books', id)).find((d) => readdirSync(d).includes('source.epub'));
   assert.ok(epubDir, 'original EPUB kept next to the parsed book');
-  const ann = JSON.parse(readFileSync(path.join(epubDir, 'annotations.json'), 'utf8'));
+  const ann = annotationsOf(epubDir);
   assert.equal(ann.deleted.c1.length, 1, 'deletion saved');
   assert.equal(ann.notes[0].text, 'Ý của tôi: bắt đầu với hai phút.', 'own paragraph saved');
+  assert.equal(ann.notes[0].afterBlock, 2, 'own paragraph sits after the paragraph Enter was pressed in');
 
-  // Re-parse from the stored original: annotations must survive and the old parse is kept.
-  await page.click('text=← Thư viện');
-  await page.click('button[aria-label^="Tách lại Thói quen"]');
-  await page.waitForSelector('text=Đã tách lại');
-  const after = JSON.parse(readFileSync(path.join(epubDir, 'annotations.json'), 'utf8'));
+  // Ctrl+F finds the own paragraph without diacritics.
+  await page.keyboard.press('Control+F');
+  await page.keyboard.type('hai phut');
+  await page.waitForFunction(() => /\d+\/\d+/.test(document.querySelector('.search-count')?.textContent ?? ''));
+  await shot(page, '4-search');
+  await page.keyboard.press('Escape');
+
+  // Contents overlay.
+  await page.keyboard.press('[');
+  await page.waitForSelector('.toc-overlay');
+  await shot(page, '5-toc');
+  await page.keyboard.press('Escape');
+
+  // Re-parse from the ⋯ menu, with confirmation: annotations survive, the old parse is kept.
+  await page.click('.topbar .more .icon-btn');
+  await shot(page, '6-menu');
+  await page.click('.menu button:has-text("Tách lại")');
+  await page.waitForSelector('.modal');
+  await shot(page, '7-confirm');
+  await page.click('.modal button.primary');
+  await page.waitForSelector('.toast:has-text("Đã tách lại")', { timeout: 15000 });
+  const after = annotationsOf(epubDir);
   assert.deepEqual(after.deleted, ann.deleted, 'deletion kept after re-parse');
   assert.equal(after.notes[0].text, ann.notes[0].text, 'own paragraph kept after re-parse');
   assert.ok(readdirSync(epubDir).includes('book.prev.json'), 'previous parse backed up');
 
-  if (shot) await page.screenshot({ path: shot });
+  // Delete from the library menu goes through a confirm box; cancelling keeps the book.
+  await page.click('.icon-btn[aria-label="Về thư viện"]');
+  await page.click('.book-row:has-text("Small Habits") .more .icon-btn');
+  await page.click('.menu button:has-text("Xóa sách")');
+  await page.waitForSelector('.modal');
+  await page.click('.modal button:has-text("Hủy")');
+  assert.equal(readdirSync(path.join(dataDir, 'books')).length, 2, 'cancel keeps the book');
+
   console.log('Smoke test passed. Data folder:', dataDir);
 } finally {
   await app.close();
