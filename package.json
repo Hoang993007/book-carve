@@ -1,30 +1,57 @@
 {
   "name": "book-carve",
+  "productName": "Book Carve",
+  "description": "A reader that treats books as raw material: delete what you don't need, write your own ideas in.",
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "typecheck": "tsc --noEmit",
+    "app": "node scripts/dev-app.mjs",
+    "build": "tsc --noEmit && tsc -p tsconfig.electron.json && vite build",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
     "test": "vitest run",
+    "smoke": "node scripts/smoke-electron.mjs",
+    "dist": "pnpm build && electron-builder --win nsis",
     "samples": "node scripts/make-samples.mjs"
   },
-  "dependencies": {
-    "idb": "^8.0.4",
-    "jszip": "^3.10.2",
-    "pdfjs-dist": "^6.5.438",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1"
-  },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.3.0",
+    "electron": "^45.3.2",
+    "electron-builder": "^26.18.0",
+    "idb": "^8.0.4",
     "jsdom": "^31.0.1",
+    "jszip": "^3.10.2",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.5.438",
+    "playwright-core": "^1.65.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"
+  },
+  "build": {
+    "appId": "local.bookcarve",
+    "productName": "Book Carve",
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
