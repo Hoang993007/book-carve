@@ -14,9 +14,10 @@ when a real task reminds you of them, without rereading the book.
 ## Design
 
 The carved book is the note. There is no separate notes pane: one reading surface
-shows the whole book in order, with deleted text gone and your own paragraphs in
+shows the whole book in order, with the contents beside it, with deleted text gone and your own paragraphs in
 place. Chapters you have not touched fold to one line until you open them. Everything
-secondary (contents, search, re-parse, export, delete) is on demand.
+secondary (search, re-parse, export, delete) is on demand; the contents sidebar
+stays, since it gives the book its structure, and folds to a thin rail.
 
 - Library: one row per book (progress, share of read text kept, own paragraphs, last
   opened); actions in each row's ⋯ menu, destructive ones behind a confirm box;
@@ -32,9 +33,9 @@ secondary (contents, search, re-parse, export, delete) is on demand.
 | Right-click | Restore struck text, delete, or insert |
 | Ctrl+Z / Ctrl+Y | Undo / redo deletions and inserted paragraphs |
 | O | Compact ↔ original (deleted text struck through) |
-| [ | Contents |
+| [ | Collapse / show the contents sidebar |
 | Ctrl+F | Search kept text and your paragraphs (diacritics ignored) |
-| Esc | Close contents and search |
+| Esc | Close search |
 
 Later: cross-book search over kept text and own paragraphs, second-brain sync, AI fluff hints.
 
