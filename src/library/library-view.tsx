@@ -4,14 +4,16 @@ import { listAnnotations, listBooks, saveBook, storageLocation } from '../lib/db
 import { foldForSearch } from '../lib/taken';
 import type { Annotations, BookMeta } from '../lib/types';
 import { useConfirm } from '../ui/confirm';
+import { SpaceTabs, type Space } from '../ui/space-tabs';
 import { useToast } from '../ui/toast';
 import { BookRow } from './book-row';
 
 interface Props {
   onOpen: (id: string) => void;
+  onSwitch: (space: Space) => void;
 }
 
-export function LibraryView({ onOpen }: Props) {
+export function LibraryView({ onOpen, onSwitch }: Props) {
   const [books, setBooks] = useState<BookMeta[]>([]);
   const [anns, setAnns] = useState<Map<string, Annotations>>(new Map());
   const [filter, setFilter] = useState('');
@@ -84,7 +86,7 @@ export function LibraryView({ onOpen }: Props) {
       }}
     >
       <header className="library-head">
-        <h1>Thư viện</h1>
+        <SpaceTabs space="books" onSwitch={onSwitch} />
         <span className="muted">{books.length} sách</span>
         <span className="spacer" />
         <input ref={filterInput} type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Lọc theo tên  (Ctrl+F)" aria-label="Lọc sách" />

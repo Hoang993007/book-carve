@@ -16,11 +16,18 @@ export function toMarkdown(book: Book, ann: Annotations): string {
 }
 
 export function downloadMarkdown(book: Book, ann: Annotations) {
-  const blob = new Blob([toMarkdown(book, ann)], { type: 'text/markdown;charset=utf-8' });
+  downloadText(`${safeFileName(book.title, 'book')} - ban cua toi.md`, toMarkdown(book, ann));
+}
+
+export const safeFileName = (title: string, fallback: string) => title.replace(/[\\/:*?"<>|]+/g, ' ').trim() || fallback;
+
+/** Saves a Markdown text through the browser's download (the app asks where to put it). */
+export function downloadText(fileName: string, text: string) {
+  const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${book.title.replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'book'} - ban cua toi.md`;
+  a.download = fileName;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

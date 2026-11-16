@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { registerStoreHandlers } from './book-store.js';
 import { createBubble } from './bubble.js';
 import { resolveDataDir } from './data-dir.js';
+import { registerWritingHandlers } from './writing-store.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = resolveDataDir();
@@ -79,6 +80,7 @@ else {
 
   app.whenReady().then(async () => {
     await registerStoreHandlers(DATA_DIR);
+    await registerWritingHandlers(DATA_DIR);
     win = createWindow();
     await createBubble(here, { toggle: toggleReader, isVisible: () => Boolean(win?.isVisible()), quit });
   });
