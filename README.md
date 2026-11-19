@@ -1,5 +1,7 @@
 # Book Carve
 
+> **Archived 2026-11-19.** Development continues in a private repository; this one stays as it was at 0.6.0.
+
 **A reader that treats books as raw material, not scripture.** Delete what you don't
 need, write your own ideas straight into the page, and come back to a book that is
 only the part worth keeping.
